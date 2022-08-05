@@ -1,0 +1,8 @@
+include LICENSE
+include README.md
+recursive-include include *
+recursive-include lib *
+recursive-include src *
+include CMakeLists.txt
+recursive-include model *
+include MRZ.json
