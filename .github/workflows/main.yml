@@ -8,30 +8,29 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, windows-2019]
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.6', '3.7', '3.8', '3.9', '3.10']
 
     steps:
-      - uses: actions/checkout@v2
-
+      - uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
-      
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.6.1
-        env:
-          CIBW_ARCHS_LINUX: auto 
-      
+          python-version: ${{ matrix.python-version }}
+
       - name: Run test.py in develop mode
         run: |
-          python setup_setuptools.py develop
+          python setup.py develop
           python -m pip install opencv-python mrz
           python --version
           python test.py
+
+      - name: Build wheels
+        run: python setup.py bdist_wheel
+
       - uses: actions/upload-artifact@v2
         with:
-          path: ./wheelhouse/*.whl
+          path: dist/*.whl
 
   build_sdist:
     name: Build source distribution

@@ -124,13 +124,6 @@ print('')
 - setuptools:
     
     ```bash
-    python setup_setuptools.py build
-    python setup_setuptools.py develop 
-    ```
-
-- scikit-build:
-    
-    ```bash
     python setup.py build
     python setup.py develop 
     ```
@@ -138,8 +131,6 @@ print('')
     
     ```bash
     pip wheel . --verbose
-    # Or
-    python setup_setuptools.py bdist_wheel
     # Or
     python setup.py bdist_wheel
     ```
