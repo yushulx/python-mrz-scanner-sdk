@@ -26,7 +26,9 @@ jobs:
           python test.py
 
       - name: Build wheels
-        run: pip wheel . -w dist
+        run: |
+          pip install -U pip wheel setuptools
+          pip wheel . -w dist
 
       - uses: actions/upload-artifact@v2
         with:
