@@ -26,11 +26,11 @@ jobs:
           python test.py
 
       - name: Build wheels
-        run: python setup.py bdist_wheel
+        run: pip wheel . -w dist
 
       - uses: actions/upload-artifact@v2
         with:
-          path: dist/*.whl
+          path: dist/mrz_scanner_sdk*.whl
 
   build_sdist:
     name: Build source distribution
@@ -43,7 +43,7 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          path: dist/*.tar.gz
+          path: dist/mrz_scanner_sdk*.tar.gz
           
   upload_pypi:
     needs: [build_wheels, build_sdist]
