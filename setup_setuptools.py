@@ -61,6 +61,13 @@ class CustomBuildExt(build_ext.build_ext):
                         copyfiles(filePath, dst)
                         # delete file for wheel package
                         os.remove(filePath)
+                        
+                model_dest = os.path.join(dst, 'model')
+                if (not os.path.exists(model_dest)):
+                    os.mkdir(model_dest)
+                    
+                copyfiles(os.path.join(os.path.join(Path(__file__).parent, 'model')), model_dest)
+                shutil.copy2('MRZ.json', dst)
 
 class CustomBuildExtDev(build_ext.build_ext):
         def run(self):
@@ -72,6 +79,13 @@ class CustomBuildExtDev(build_ext.build_ext):
                     filePath = os.path.join(self.build_lib, file)
                     if not os.path.isdir(file):
                         copyfiles(filePath, dev_folder)
+                        
+                model_dest = os.path.join(dev_folder, 'model')
+                if (not os.path.exists(model_dest)):
+                    os.mkdir(model_dest)
+                    
+                copyfiles(os.path.join(os.path.join(Path(__file__).parent, 'model')), model_dest)
+                shutil.copy2('MRZ.json', dev_folder)
 
 class CustomInstall(install):
     def run(self):
