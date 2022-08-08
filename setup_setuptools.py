@@ -136,7 +136,7 @@ setup(name='mrz-scanner-sdk',
       install_requires=['opencv-python', 'mrz'],
       entry_points={
           'console_scripts': ['scanmrz=mrzscanner.scripts:scanmrz']
-      }
+      },
       cmdclass={
           'install': CustomInstall,
           'build_ext': CustomBuildExt,
