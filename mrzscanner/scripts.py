@@ -54,10 +54,12 @@ def scanmrz():
     """
     parser = argparse.ArgumentParser(description='Scan MRZ info from a given image')
     parser.add_argument('filename')
+    parser.add_argument('-u', '--ui', default=False, type=bool, help='Whether to show the image')
     args = parser.parse_args()
-
+    # print(args)
     try:
         filename = args.filename
+        ui = args.ui
         
         # set license
         mrzscanner.initLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==")
@@ -65,29 +67,38 @@ def scanmrz():
         # initialize mrz scanner
         scanner = mrzscanner.createInstance()
 
+        # load MRZ model
+        scanner.loadModel(mrzscanner.get_model_path())
+        
         image = cv2.imread(filename)
         
         s = ""
-        results = scanner.decodeMat(image)
-        for result in results:
-            print(result.text)
-            s += result.text + '\n'
-            x1 = result.x1
-            y1 = result.y1
-            x2 = result.x2
-            y2 = result.y2
-            x3 = result.x3
-            y3 = result.y3
-            x4 = result.x4
-            y4 = result.y4
-            
-            cv2.drawContours(image, [np.int0([(x1, y1), (x2, y2), (x3, y3), (x4, y4)])], 0, (0, 255, 0), 2)
-            # cv2.putText(image, result.text, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 2)
-            
+        if ui:
+            results = scanner.decodeMat(image)
+            for result in results:
+                print(result.text)
+                s += result.text + '\n'
+                x1 = result.x1
+                y1 = result.y1
+                x2 = result.x2
+                y2 = result.y2
+                x3 = result.x3
+                y3 = result.y3
+                x4 = result.x4
+                y4 = result.y4
+                
+                cv2.drawContours(image, [np.int0([(x1, y1), (x2, y2), (x3, y3), (x4, y4)])], 0, (0, 255, 0), 2)
+                # cv2.putText(image, result.text, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 2)
+                
+            cv2.imshow("image", image)
+            cv2.waitKey(0)
+        else:
+            results = scanner.decodeFile(filename)
+            for result in results:
+                print(result.text)
+                s += result.text + '\n'
+                
         print(check(s[:-1]))
-        
-        cv2.imshow("image", image)
-        cv2.waitKey(0)
             
     except Exception as err:
         print(err)

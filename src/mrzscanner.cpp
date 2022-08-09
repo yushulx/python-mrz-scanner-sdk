@@ -40,18 +40,8 @@ static PyObject *createInstance(PyObject *obj, PyObject *args)
     if (PyType_Ready(&DynamsoftMrzReaderType) < 0)
          INITERROR;
 
-
     DynamsoftMrzReader* reader = PyObject_New(DynamsoftMrzReader, &DynamsoftMrzReaderType);
     reader->handler = DLR_CreateInstance();
-    char errorMsgBuffer[512];
-    int ret = DLR_AppendSettingsFromFile(reader->handler, "MRZ.json", errorMsgBuffer, 512);
-    printf("Load MRZ model: %s\n", errorMsgBuffer);
-    if (ret)
-    {
-        printf("Failed to load MRZ model.\n");
-        return NULL;
-    }
-
     return (PyObject *)reader;
 }
 

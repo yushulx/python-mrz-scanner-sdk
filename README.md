@@ -13,11 +13,15 @@ Get a [30-day FREE trial license](https://www.dynamsoft.com/customer/license/tri
 pip install mrz opencv-python
 ```
 
-
 ## Command-line Usage
 ```bash 
-$ scanmrz <file-name>
+$ scanmrz <file-name> -u
+
+# Show the image with OpenCV
+$ scanmrz <file-name> -u 1
 ```
+
+![python mrz scanner](https://www.dynamsoft.com/codepool/img/2022/08/python-mrz-scanner.png)
 
 ## Quick Start
 ```python
@@ -72,6 +76,9 @@ mrzscanner.initLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUi
 # initialize mrz scanner
 scanner = mrzscanner.createInstance()
 
+# load MRZ model
+scanner.loadModel(mrzscanner.get_model_path())
+
 print('')
 # decodeFile()
 s = ""
@@ -98,14 +105,19 @@ print('')
     ```python
     scanner = mrzscanner.createInstance()
     ```
-- `decodeFile(filename)` # recognize MRZ from an image file
+- `scanner.loadModel(<model configuration file>)` # load MRZ model
+    
+    ```python
+    scanner.loadModel(mrzscanner.get_model_path())
+    ```
+- `decodeFile(<image file>)` # recognize MRZ from an image file
 
     ```python
     results = scanner.decodeFile(<image-file>)
     for result in results:
-            print(result.text)
+        print(result.text)
     ```
-- `decodeMat(Mat image)` # recognize MRZ from OpenCV Mat
+- `decodeMat(<opencv mat data>)` # recognize MRZ from OpenCV Mat
     ```python
     import cv2
     image = cv2.imread(<image-file>)

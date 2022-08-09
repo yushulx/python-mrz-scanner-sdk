@@ -38,14 +38,6 @@ static PyObject *DynamsoftMrzReader_new(PyTypeObject *type, PyObject *args, PyOb
     if (self != NULL)
     {
        	self->handler = DLR_CreateInstance();
-        char errorMsgBuffer[512];
-        int ret = DLR_AppendSettingsFromFile(self->handler, "MRZ.json", errorMsgBuffer, 512);
-        printf("Load MRZ model: %s\n", errorMsgBuffer);
-        if (ret)
-        {
-            printf("Failed to load MRZ model.\n");
-            return NULL;
-        }
     }
 
     return (PyObject *)self;
@@ -119,7 +111,7 @@ static PyObject *createPyResults(DynamsoftMrzReader *self)
 /**
  * Decode barcode and QR code from image files. 
  * 
- * @param file name
+ * @param string filename
  * 
  * @return MrzResult list
  */
@@ -212,9 +204,34 @@ static PyObject *decodeMat(PyObject *obj, PyObject *args)
     return list;
 }
 
+/**
+ * Load MRZ configuration file. 
+ * 
+ * @param string filename
+ * 
+ * @return loading status
+ */
+static PyObject *loadModel(PyObject *obj, PyObject *args)
+{
+    DynamsoftMrzReader *self = (DynamsoftMrzReader *)obj;
+
+    char *pFileName; // File name
+    if (!PyArg_ParseTuple(args, "s", &pFileName))
+    {
+        return NULL;
+    }
+
+    char errorMsgBuffer[512];
+    int ret = DLR_AppendSettingsFromFile(self->handler, pFileName, errorMsgBuffer, 512);
+    printf("Load MRZ model: %s\n", errorMsgBuffer);
+
+    return Py_BuildValue("i", ret);
+}
+
 static PyMethodDef instance_methods[] = {
   {"decodeFile", decodeFile, METH_VARARGS, NULL},
   {"decodeMat", decodeMat, METH_VARARGS, NULL},
+  {"loadModel", loadModel, METH_VARARGS, NULL},
   {NULL, NULL, 0, NULL}       
 };
 

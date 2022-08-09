@@ -49,6 +49,9 @@ mrzscanner.initLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUi
 # initialize mrz scanner
 scanner = mrzscanner.createInstance()
 
+# load MRZ model
+scanner.loadModel(mrzscanner.get_model_path())
+
 print('')
 # decodeFile()
 s = ""
