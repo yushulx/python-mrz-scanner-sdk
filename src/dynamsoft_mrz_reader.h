@@ -1,5 +1,5 @@
-#ifndef __BARCODE_READER_H__
-#define __BARCODE_READER_H__
+#ifndef __MRZ_READER_H__
+#define __MRZ_READER_H__
 
 #include <Python.h>
 #include <structmember.h>
@@ -11,7 +11,6 @@
 typedef struct
 {
     PyObject_HEAD
-    // Barcode reader handler
     void *handler;
 } DynamsoftMrzReader;
 
@@ -45,7 +44,6 @@ static PyObject *DynamsoftMrzReader_new(PyTypeObject *type, PyObject *args, PyOb
 
 PyObject *createPyList(DLR_ResultArray *pResults)
 {
-    // Get barcode results
     int count = pResults->resultsCount;
     // printf("\nRecognized %d result(s)\n", count);
 
@@ -109,7 +107,7 @@ static PyObject *createPyResults(DynamsoftMrzReader *self)
 
 
 /**
- * Decode barcode and QR code from image files. 
+ * Recognize MRZ from image files. 
  * 
  * @param string filename
  * 
@@ -125,7 +123,6 @@ static PyObject *decodeFile(PyObject *obj, PyObject *args)
         return NULL;
     }
 
-    // Barcode detection
     int ret = DLR_RecognizeByFile(self->handler, pFileName, "locr");
     if (ret)
     {
@@ -137,7 +134,7 @@ static PyObject *decodeFile(PyObject *obj, PyObject *args)
 }
 
 /**
- * Decode barcode and QR code from OpenCV Mat. 
+ * Recognize MRZ from OpenCV Mat. 
  * 
  * @param Mat image
  * 

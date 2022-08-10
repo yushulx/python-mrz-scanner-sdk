@@ -1,5 +1,5 @@
-#ifndef __BARCODE_RESULT_H__
-#define __BARCODE_RESULT_H__
+#ifndef __MRZ_RESULT_H__
+#define __MRZ_RESULT_H__
 
 #include <Python.h>
 #include <structmember.h>
