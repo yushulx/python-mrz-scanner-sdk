@@ -15,7 +15,7 @@ pip install mrz opencv-python
 
 ## Command-line Usage
 ```bash 
-$ scanmrz <file-name> -u
+$ scanmrz <file-name>
 
 # Show the image with OpenCV
 $ scanmrz <file-name> -u 1
