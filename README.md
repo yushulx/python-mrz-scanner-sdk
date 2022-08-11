@@ -15,10 +15,10 @@ pip install mrz opencv-python
 
 ## Command-line Usage
 ```bash 
-$ scanmrz <file-name>
+$ scanmrz <file-name> -l <license-key>
 
 # Show the image with OpenCV
-$ scanmrz <file-name> -u 1
+$ scanmrz <file-name> -u 1 -l <license-key>
 ```
 
 ![python mrz scanner](https://www.dynamsoft.com/codepool/img/2022/08/python-mrz-scanner.png)

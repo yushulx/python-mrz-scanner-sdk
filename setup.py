@@ -52,23 +52,23 @@ def copyfiles(src, dst):
     else:
         shutil.copy2(src, dst)
 
-def updateConfigFile(config_file):
-    try:
-        # open json file
-        with open(config_file, 'r+') as f:
-            data = json.load(f)
-            # before
-            print(data['CharacterModelArray'][0]['DirectoryPath'])
-            # after
-            data['CharacterModelArray'][0]['DirectoryPath'] = os.path.join(os.path.dirname(config_file), 'model')
-            print(data['CharacterModelArray'][0]['DirectoryPath'])
+# def updateConfigFile(config_file):
+#     try:
+#         # open json file
+#         with open(config_file, 'r+') as f:
+#             data = json.load(f)
+#             # before
+#             print(data['CharacterModelArray'][0]['DirectoryPath'])
+#             # after
+#             data['CharacterModelArray'][0]['DirectoryPath'] = os.path.join(os.path.dirname(config_file), 'model')
+#             print(data['CharacterModelArray'][0]['DirectoryPath'])
             
-            # write json file
-            f.seek(0) # rewind
-            f.write(json.dumps(data))
-    except Exception as e:
-        print(e)
-        pass
+#             # write json file
+#             f.seek(0) # rewind
+#             f.write(json.dumps(data))
+#     except Exception as e:
+#         print(e)
+#         pass
 
 class CustomBuildExt(build_ext.build_ext):
     def run(self):
@@ -92,29 +92,29 @@ class CustomBuildExt(build_ext.build_ext):
         shutil.copy2('MRZ.json', dst)
 
         # Update model configuration for package installation directory
-        packages = site.getsitepackages()
-        print(packages)
-        for package in packages:
-            if 'site-packages' in package:
-                try:
-                    # configure model path in MRZ.json
-                    config_file = os.path.join(dst, 'MRZ.json')
-                    # open json file
-                    with open(config_file, 'r+') as f:
-                        data = json.load(f)
-                        # before
-                        print(data['CharacterModelArray'][0]['DirectoryPath'])
-                        # after
-                        data['CharacterModelArray'][0]['DirectoryPath'] = os.path.join(package, 'mrzscanner', 'model')
-                        print(data['CharacterModelArray'][0]['DirectoryPath'])
+        # packages = site.getsitepackages()
+        # print(packages)
+        # for package in packages:
+        #     if 'site-packages' in package:
+        #         try:
+        #             # configure model path in MRZ.json
+        #             config_file = os.path.join(dst, 'MRZ.json')
+        #             # open json file
+        #             with open(config_file, 'r+') as f:
+        #                 data = json.load(f)
+        #                 # before
+        #                 print(data['CharacterModelArray'][0]['DirectoryPath'])
+        #                 # after
+        #                 data['CharacterModelArray'][0]['DirectoryPath'] = os.path.join(package, 'mrzscanner', 'model')
+        #                 print(data['CharacterModelArray'][0]['DirectoryPath'])
                         
-                        # write json file
-                        f.seek(0) # rewind
-                        f.write(json.dumps(data))
-                except Exception as e:
-                    print(e)
-                    pass
-                break
+        #                 # write json file
+        #                 f.seek(0) # rewind
+        #                 f.write(json.dumps(data))
+        #         except Exception as e:
+        #             print(e)
+        #             pass
+        #         break
 
 class CustomBuildExtDev(build_ext.build_ext):
     def run(self):
@@ -135,7 +135,7 @@ class CustomBuildExtDev(build_ext.build_ext):
             Path(__file__).parent, 'model')), model_dest)
         shutil.copy2('MRZ.json', dev_folder)
         
-        updateConfigFile(os.path.join(dev_folder, 'MRZ.json'))
+        # updateConfigFile(os.path.join(dev_folder, 'MRZ.json'))
 
 
 class CustomInstall(install):
@@ -144,7 +144,7 @@ class CustomInstall(install):
 
 
 setup(name='mrz-scanner-sdk',
-      version='1.0.4',
+      version='1.0.5',
       description='Machine readable zone (MRZ) reading SDK for passport, Visa, ID card and travel document.',
       long_description=long_description,
       long_description_content_type="text/markdown",
