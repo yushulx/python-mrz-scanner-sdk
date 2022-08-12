@@ -27,7 +27,7 @@ if sys.platform == "linux" or sys.platform == "linux2":
         library_dirs=[dbr_lib_dir],
         extra_compile_args=['-std=c++11'],
         extra_link_args=["-Wl,-rpath=$ORIGIN"],
-        libraries=[dbr_lib_name],
+        libraries=[dbr_lib_name, 'pthread'],
         include_dirs=['include']
     )
 
