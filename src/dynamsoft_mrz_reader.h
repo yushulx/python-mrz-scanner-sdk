@@ -22,7 +22,8 @@ public:
 
 typedef struct
 {
-    PyObject_HEAD void *handler;
+    PyObject_HEAD 
+    void *handler;
     PyObject *callback;
     std::thread *worker;
     WorkerStatus *status;
@@ -30,6 +31,12 @@ typedef struct
 
 static int DynamsoftMrzReader_clear(DynamsoftMrzReader *self)
 {
+    if (self->callback)
+    {
+        Py_XDECREF(self->callback);
+        self->callback = NULL;
+    }
+
     if (self->handler)
     {
         DLR_DestroyInstance(self->handler);
@@ -69,6 +76,9 @@ static PyObject *DynamsoftMrzReader_new(PyTypeObject *type, PyObject *args, PyOb
     if (self != NULL)
     {
         self->handler = DLR_CreateInstance();
+        self->status = NULL;
+        self->worker = NULL;
+        self->callback = NULL;
     }
 
     return (PyObject *)self;

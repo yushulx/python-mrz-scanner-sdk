@@ -90,8 +90,6 @@ print('')
 print(check(s[:-1]))
 print('')
 ```
-        
-
 
 ## Methods
 - `mrzscanner.initLicense('YOUR-LICENSE-KEY')` # set the license globally
@@ -124,6 +122,25 @@ print('')
     results = scanner.decodeMat(image)
     for result in results:
         print(result.text)
+    ```
+- `addAsyncListener(callback function)` # start a native thread and register a Python function for receiving the MRZ recognition results
+- `decodeMatAsync(<opencv mat data>)` # recognize MRZ from OpenCV Mat asynchronously
+    ```python
+    def callback(results):
+        s = ""
+        for result in results:
+            print(result.text)
+            s += result.text + '\n'
+    
+        print('')
+        print(check(s[:-1]))
+    
+    import cv2
+    image = cv2.imread(<image-file>)
+    scanner.addAsyncListener(callback)
+    for i in range (2):
+        scanner.decodeMatAsync(image)
+        sleep(1)
     ```
 
 ## How to Build the Python MRZ Scanner Extension
