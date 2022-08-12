@@ -1,3 +1,4 @@
+from time import sleep
 import mrzscanner
 from mrz.checker.td1 import TD1CodeChecker
 from mrz.checker.td2 import TD2CodeChecker
@@ -49,11 +50,12 @@ mrzscanner.initLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUi
 # initialize mrz scanner
 scanner = mrzscanner.createInstance()
 
-# load MRZ model
+# # load MRZ model
 scanner.loadModel(mrzscanner.get_model_path())
 
 print('')
 # decodeFile()
+print('Test decodeFile()')
 s = ""
 results = scanner.decodeFile("images/1.png")
 for result in results:
@@ -63,19 +65,11 @@ print('')
 print(check(s[:-1]))
 print('')
 
-s = ""
-results = scanner.decodeFile("images/2.png")
-for result in results:
-    print(result.text)
-    s += result.text + '\n'
-print('')
-print(check(s[:-1]))
-print('')
-
 # decodeMat()
+print('Test decodeMat()')
 s = ""
 import cv2
-image = cv2.imread("images/3.jpg")
+image = cv2.imread("images/2.png")
 results = scanner.decodeMat(image)
 for result in results:
     print(result.text)
@@ -83,3 +77,24 @@ for result in results:
 
 print('')
 print(check(s[:-1]))
+
+# decodeMatAsync()
+print('Test decodeMatAsync()')
+def callback(results):
+    s = ""
+    for result in results:
+        print(result.text)
+        s += result.text + '\n'
+    
+    print('')
+    print(check(s[:-1]))
+    
+import cv2
+image = cv2.imread("images/3.jpg")
+scanner.addAsyncListener(callback)
+for i in range (2):
+    scanner.decodeMatAsync(image)
+    sleep(1)
+
+
+

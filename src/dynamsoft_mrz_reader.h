@@ -11,16 +11,21 @@
 #include <queue>
 #include <functional> 
 
+class WorkerStatus {
+public:
+    std::mutex m;
+    std::condition_variable cv;
+    std::queue<std::function<void()>> tasks = {};
+    volatile bool running = true;
+};
+
 typedef struct
 {
     PyObject_HEAD 
     void *handler;
     PyObject *callback;
     std::thread *worker;
-    volatile bool running;
-    std::condition_variable cv;
-    std::mutex m;
-    std::queue<std::function<void()>> tasks = {};
+    WorkerStatus* status;
 } DynamsoftMrzReader;
 
 static int DynamsoftMrzReader_clear(DynamsoftMrzReader *self)
@@ -31,14 +36,22 @@ static int DynamsoftMrzReader_clear(DynamsoftMrzReader *self)
         self->handler = NULL;
     }
 
+    if (self->status)
+    {
+        self->status->running = false;
+        self->status->cv.notify_one();
+        self->worker->join();
+        delete self->status;
+        self->status = NULL;
+        printf("Quit native thread.\n");
+    }
+
     if (self->worker)
     {
-        self->running = false;
-        self->cv.notify_one();
-        self->worker->join();
         delete self->worker;
         self->worker = NULL;
     }
+
     return 0;
 }
 
@@ -64,7 +77,6 @@ static PyObject *DynamsoftMrzReader_new(PyTypeObject *type, PyObject *args, PyOb
 PyObject *createPyList(DLR_ResultArray *pResults)
 {
     int count = pResults->resultsCount;
-    // printf("\nRecognized %d result(s)\n", count);
 
     // Create a Python object to store results
     PyObject *list = PyList_New(0);
@@ -72,7 +84,6 @@ PyObject *createPyList(DLR_ResultArray *pResults)
     {
         DLR_Result *mrzResult = pResults->results[i];
         int lCount = mrzResult->lineResultsCount;
-        // printf("Line count: %d\n", lCount);
         for (int j = 0; j < lCount; j++)
         {
             // printf("Line result %d: %s\n", j, mrzResult->lineResults[j]->text);
@@ -109,10 +120,8 @@ static PyObject *createPyResults(DynamsoftMrzReader *self)
 {
     DLR_ResultArray *pResults = NULL;
     DLR_GetAllResults(self->handler, &pResults);
-
     if (!pResults)
     {
-        printf("No MRZ info detected\n");
         return NULL;
     }
 
@@ -219,6 +228,95 @@ static PyObject *decodeMat(PyObject *obj, PyObject *args)
     return list;
 }
 
+void onResultReady(DynamsoftMrzReader *self)
+{
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
+    PyObject *list = createPyResults(self);
+    PyObject *result = PyObject_CallFunction(self->callback, "O", list);
+    if (result != NULL)
+        Py_DECREF(result);
+
+    PyGILState_Release(gstate);
+}
+
+void scan(DynamsoftMrzReader *self, unsigned char* buffer, int width, int height, int stride, ImagePixelFormat format, int len)
+{
+    ImageData data;
+    data.bytes = buffer;
+    data.width = width;
+    data.height = height;
+    data.stride = stride;
+    data.format = format;
+    data.bytesLength = len;
+
+	int ret = DLR_RecognizeByBuffer(self->handler, &data, "locr");
+    if (ret)
+    {
+        printf("Detection error: %s\n", DLR_GetErrorString(ret));
+    }
+
+    free(buffer);
+
+    onResultReady(self);
+}
+
+/**
+ * Recognize MRZ from OpenCV Mat asynchronously.
+ *
+ * @param Mat image
+ *
+ */
+static PyObject *decodeMatAsync(PyObject *obj, PyObject *args)
+{
+    DynamsoftMrzReader *self = (DynamsoftMrzReader *)obj;
+    PyObject *o;
+    if (!PyArg_ParseTuple(args, "O", &o))
+        return NULL;
+
+    Py_buffer *view;
+    int nd;
+    PyObject *memoryview = PyMemoryView_FromObject(o);
+    if (memoryview == NULL)
+    {
+        PyErr_Clear();
+        return NULL;
+    }
+
+    view = PyMemoryView_GET_BUFFER(memoryview);
+    char *buffer = (char *)view->buf;
+    nd = view->ndim;
+    int len = view->len;
+    int stride = view->strides[0];
+    int width = view->strides[0] / view->strides[1];
+    int height = len / stride;
+
+    ImagePixelFormat format = IPF_RGB_888;
+
+    if (width == stride)
+    {
+        format = IPF_GRAYSCALED;
+    }
+    else if (width * 3 == stride)
+    {
+        format = IPF_RGB_888;
+    }
+    else if (width * 4 == stride)
+    {
+        format = IPF_ARGB_8888;
+    }
+
+    unsigned char *data = (unsigned char *)malloc(len);
+    memcpy(data, buffer, len);
+    Py_DECREF(memoryview);
+
+    std::function<void()> task_function = std::bind(scan, self, data, width, height, stride, format, len);
+    self->status->tasks.push(task_function);
+    self->status->cv.notify_one();
+
+    return Py_BuildValue("i", 0);;
+}
+
 /**
  * Load MRZ configuration file.
  *
@@ -243,37 +341,15 @@ static PyObject *loadModel(PyObject *obj, PyObject *args)
     return Py_BuildValue("i", ret);
 }
 
-void onResultReady(DLR_ResultArray *pResults, DynamsoftMrzReader *self)
-{
-    PyGILState_STATE gstate;
-    gstate = PyGILState_Ensure();
-
-    PyObject *list = createPyList(pResults);
-
-    PyObject *result = PyObject_CallFunction(self->callback, "O", list);
-    if (result != NULL)
-        Py_DECREF(result);
-
-    PyGILState_Release(gstate);
-
-    // Release memory
-    DLR_FreeResults(&pResults);
-}
-
 void run(DynamsoftMrzReader *self)
 {
-    while (self->running)
+    while (self->status->running)
     {
         std::function<void()> task;
-        std::unique_lock<std::mutex> lk(self->m);
-        self->cv.wait(lk, [] { return true;});
-    
-
-        task = std::move(self->tasks.front());
-        self->tasks.pop();
-
-        // Manual unlocking is done before notifying, to avoid waking up
-        // the waiting thread only to block again (see notify_one for details)
+        std::unique_lock<std::mutex> lk(self->status->m);
+        self->status->cv.wait(lk, [self] { return !self->status->tasks.empty() || !self->status->running;});
+        task = std::move(self->status->tasks.front());
+        self->status->tasks.pop();
         lk.unlock();
 
         task();
@@ -283,7 +359,7 @@ void run(DynamsoftMrzReader *self)
 /**
  * Register callback function to receive barcode decoding result asynchronously.
  */
-static PyObject *registerAsyncCallback(PyObject *obj, PyObject *args)
+static PyObject *addAsyncListener(PyObject *obj, PyObject *args)
 {
     DynamsoftMrzReader *self = (DynamsoftMrzReader *)obj;
 
@@ -305,9 +381,14 @@ static PyObject *registerAsyncCallback(PyObject *obj, PyObject *args)
         self->callback = callback;
     }
 
-    self->running = true;
-    self->worker = new std::thread(run, self);
-
+    if (self->worker == NULL)
+    {
+        self->status = new WorkerStatus();
+        self->status->running = true;
+        self->worker = new std::thread(run, self);
+    }
+    
+    printf("Running native thread...\n");
     return Py_BuildValue("i", 0);
 }
 
@@ -315,7 +396,8 @@ static PyMethodDef instance_methods[] = {
     {"decodeFile", decodeFile, METH_VARARGS, NULL},
     {"decodeMat", decodeMat, METH_VARARGS, NULL},
     {"loadModel", loadModel, METH_VARARGS, NULL},
-    {"registerAsyncCallback", registerAsyncCallback, METH_VARARGS, NULL},
+    {"addAsyncListener", addAsyncListener, METH_VARARGS, NULL},
+    {"decodeMatAsync", decodeMatAsync, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}};
 
 static PyTypeObject DynamsoftMrzReaderType = {
