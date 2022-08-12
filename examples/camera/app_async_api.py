@@ -1,10 +1,10 @@
-from time import sleep
 import mrzscanner
 from mrz.checker.td1 import TD1CodeChecker
 from mrz.checker.td2 import TD2CodeChecker
 from mrz.checker.td3 import TD3CodeChecker
 from mrz.checker.mrva import MRVACodeChecker
 from mrz.checker.mrvb import MRVBCodeChecker
+import numpy as np
 
 def check(lines):
     try:
@@ -53,48 +53,42 @@ scanner = mrzscanner.createInstance()
 # # load MRZ model
 scanner.loadModel(mrzscanner.get_model_path())
 
-print('')
-# decodeFile()
-print('Test decodeFile()')
-s = ""
-results = scanner.decodeFile("images/1.png")
-for result in results:
-    print(result.text)
-    s += result.text + '\n'
-print('')
-print(check(s[:-1]))
-print('')
+g_results = None
 
-# decodeMat()
-print('Test decodeMat()')
-s = ""
-import cv2
-image = cv2.imread("images/2.png")
-results = scanner.decodeMat(image)
-for result in results:
-    print(result.text)
-    s += result.text + '\n'
-
-print('')
-print(check(s[:-1]))
-
-# decodeMatAsync()
-print('Test decodeMatAsync()')
 def callback(results):
-    s = ""
-    for result in results:
-        print(result.text)
-        s += result.text + '\n'
-    
-    print('')
-    print(check(s[:-1]))
+    global g_results 
+    g_results = results
     
 import cv2
-image = cv2.imread("images/3.jpg")
 scanner.addAsyncListener(callback)
-for i in range (2):
-    scanner.decodeMatAsync(image)
-    sleep(1)
+
+cap = cv2.VideoCapture(0)
+while True:
+    ret, image = cap.read()
+    if image is not None:
+        scanner.decodeMatAsync(image)
+    
+    if g_results != None:
+        s = ''
+        for result in g_results:
+            s += result.text + '\n'
+            x1 = result.x1
+            y1 = result.y1
+            x2 = result.x2
+            y2 = result.y2
+            x3 = result.x3
+            y3 = result.y3
+            x4 = result.x4
+            y4 = result.y4
+            
+            cv2.drawContours(image, [np.int0([(x1, y1), (x2, y2), (x3, y3), (x4, y4)])], 0, (0, 255, 0), 2)
+        
+        print(check(s[:-1]))
+
+    cv2.imshow('MRZ Scanner', image)
+    ch = cv2.waitKey(1)
+    if ch == 27:
+        break
 
 
 
