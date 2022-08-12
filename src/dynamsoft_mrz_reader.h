@@ -5,27 +5,46 @@
 #include <structmember.h>
 #include "DynamsoftLabelRecognizer.h"
 #include "mrz_result.h"
-
-#define DEBUG 0
+#include <thread>
+#include <condition_variable>
+#include <mutex>
+#include <queue>
+#include <functional> 
 
 typedef struct
 {
-    PyObject_HEAD
+    PyObject_HEAD 
     void *handler;
+    PyObject *callback;
+    std::thread *worker;
+    volatile bool running;
+    std::condition_variable cv;
+    std::mutex m;
+    std::queue<std::function<void()>> tasks = {};
 } DynamsoftMrzReader;
 
 static int DynamsoftMrzReader_clear(DynamsoftMrzReader *self)
 {
-    if(self->handler) {
-		DLR_DestroyInstance(self->handler);
-    	self->handler = NULL;
-	}
+    if (self->handler)
+    {
+        DLR_DestroyInstance(self->handler);
+        self->handler = NULL;
+    }
+
+    if (self->worker)
+    {
+        self->running = false;
+        self->cv.notify_one();
+        self->worker->join();
+        delete self->worker;
+        self->worker = NULL;
+    }
     return 0;
 }
 
 static void DynamsoftMrzReader_dealloc(DynamsoftMrzReader *self)
 {
-	DynamsoftMrzReader_clear(self);
+    DynamsoftMrzReader_clear(self);
     Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
@@ -36,7 +55,7 @@ static PyObject *DynamsoftMrzReader_new(PyTypeObject *type, PyObject *args, PyOb
     self = (DynamsoftMrzReader *)type->tp_alloc(type, 0);
     if (self != NULL)
     {
-       	self->handler = DLR_CreateInstance();
+        self->handler = DLR_CreateInstance();
     }
 
     return (PyObject *)self;
@@ -51,7 +70,7 @@ PyObject *createPyList(DLR_ResultArray *pResults)
     PyObject *list = PyList_New(0);
     for (int i = 0; i < count; i++)
     {
-        DLR_Result* mrzResult = pResults->results[i];
+        DLR_Result *mrzResult = pResults->results[i];
         int lCount = mrzResult->lineResultsCount;
         // printf("Line count: %d\n", lCount);
         for (int j = 0; j < lCount; j++)
@@ -67,7 +86,7 @@ PyObject *createPyList(DLR_ResultArray *pResults)
             int y3 = points[2].y;
             int x4 = points[3].x;
             int y4 = points[3].y;
-            MrzResult* result = PyObject_New(MrzResult, &MrzResultType);
+            MrzResult *result = PyObject_New(MrzResult, &MrzResultType);
             result->confidence = Py_BuildValue("i", mrzResult->lineResults[j]->confidence);
             result->text = PyUnicode_FromString(mrzResult->lineResults[j]->text);
             result->x1 = Py_BuildValue("i", x1);
@@ -105,12 +124,11 @@ static PyObject *createPyResults(DynamsoftMrzReader *self)
     return list;
 }
 
-
 /**
- * Recognize MRZ from image files. 
- * 
+ * Recognize MRZ from image files.
+ *
  * @param string filename
- * 
+ *
  * @return MrzResult list
  */
 static PyObject *decodeFile(PyObject *obj, PyObject *args)
@@ -134,10 +152,10 @@ static PyObject *decodeFile(PyObject *obj, PyObject *args)
 }
 
 /**
- * Recognize MRZ from OpenCV Mat. 
- * 
+ * Recognize MRZ from OpenCV Mat.
+ *
  * @param Mat image
- * 
+ *
  * @return MrzResult list
  */
 static PyObject *decodeMat(PyObject *obj, PyObject *args)
@@ -181,7 +199,7 @@ static PyObject *decodeMat(PyObject *obj, PyObject *args)
     }
 
     ImageData data;
-    data.bytes = (unsigned char*)buffer;
+    data.bytes = (unsigned char *)buffer;
     data.width = width;
     data.height = height;
     data.stride = stride;
@@ -202,10 +220,10 @@ static PyObject *decodeMat(PyObject *obj, PyObject *args)
 }
 
 /**
- * Load MRZ configuration file. 
- * 
+ * Load MRZ configuration file.
+ *
  * @param string filename
- * 
+ *
  * @return loading status
  */
 static PyObject *loadModel(PyObject *obj, PyObject *args)
@@ -225,51 +243,119 @@ static PyObject *loadModel(PyObject *obj, PyObject *args)
     return Py_BuildValue("i", ret);
 }
 
+void onResultReady(DLR_ResultArray *pResults, DynamsoftMrzReader *self)
+{
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
+
+    PyObject *list = createPyList(pResults);
+
+    PyObject *result = PyObject_CallFunction(self->callback, "O", list);
+    if (result != NULL)
+        Py_DECREF(result);
+
+    PyGILState_Release(gstate);
+
+    // Release memory
+    DLR_FreeResults(&pResults);
+}
+
+void run(DynamsoftMrzReader *self)
+{
+    while (self->running)
+    {
+        std::function<void()> task;
+        std::unique_lock<std::mutex> lk(self->m);
+        self->cv.wait(lk, [] { return true;});
+    
+
+        task = std::move(self->tasks.front());
+        self->tasks.pop();
+
+        // Manual unlocking is done before notifying, to avoid waking up
+        // the waiting thread only to block again (see notify_one for details)
+        lk.unlock();
+
+        task();
+    }
+}
+
+/**
+ * Register callback function to receive barcode decoding result asynchronously.
+ */
+static PyObject *registerAsyncCallback(PyObject *obj, PyObject *args)
+{
+    DynamsoftMrzReader *self = (DynamsoftMrzReader *)obj;
+
+    PyObject *callback = NULL;
+    if (!PyArg_ParseTuple(args, "O", &callback))
+    {
+        return NULL;
+    }
+
+    if (!PyCallable_Check(callback))
+    {
+        PyErr_SetString(PyExc_TypeError, "parameter must be callable");
+        return NULL;
+    }
+    else
+    {
+        Py_XINCREF(callback);       /* Add a reference to new callback */
+        Py_XDECREF(self->callback); /* Dispose of previous callback */
+        self->callback = callback;
+    }
+
+    self->running = true;
+    self->worker = new std::thread(run, self);
+
+    return Py_BuildValue("i", 0);
+}
+
 static PyMethodDef instance_methods[] = {
-  {"decodeFile", decodeFile, METH_VARARGS, NULL},
-  {"decodeMat", decodeMat, METH_VARARGS, NULL},
-  {"loadModel", loadModel, METH_VARARGS, NULL},
-  {NULL, NULL, 0, NULL}       
-};
+    {"decodeFile", decodeFile, METH_VARARGS, NULL},
+    {"decodeMat", decodeMat, METH_VARARGS, NULL},
+    {"loadModel", loadModel, METH_VARARGS, NULL},
+    {"registerAsyncCallback", registerAsyncCallback, METH_VARARGS, NULL},
+    {NULL, NULL, 0, NULL}};
 
 static PyTypeObject DynamsoftMrzReaderType = {
     PyVarObject_HEAD_INIT(NULL, 0) "mrzscanner.DynamsoftMrzReader", /* tp_name */
-    sizeof(DynamsoftMrzReader),                              /* tp_basicsize */
-    0,                                                           /* tp_itemsize */
-    (destructor)DynamsoftMrzReader_dealloc,                  /* tp_dealloc */
-    0,                                                           /* tp_print */
-    0,                                                           /* tp_getattr */
-    0,                                                           /* tp_setattr */
-    0,                                                           /* tp_reserved */
-    0,                                                           /* tp_repr */
-    0,                                                           /* tp_as_number */
-    0,                                                           /* tp_as_sequence */
-    0,                                                           /* tp_as_mapping */
-    0,                                                           /* tp_hash  */
-    0,                                                           /* tp_call */
-    0,                                                           /* tp_str */
-    PyObject_GenericGetAttr,                                                           /* tp_getattro */
-    PyObject_GenericSetAttr,                                                           /* tp_setattro */
-    0,                                                           /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,                    /*tp_flags*/
-    "DynamsoftMrzReader",                          /* tp_doc */
-    0,                                                           /* tp_traverse */
-    0,                                                           /* tp_clear */
-    0,                                                           /* tp_richcompare */
-    0,                                                           /* tp_weaklistoffset */
-    0,                                                           /* tp_iter */
-    0,                                                           /* tp_iternext */
-    instance_methods,                                                 /* tp_methods */
-    0,                                                 /* tp_members */
-    0,                                                           /* tp_getset */
-    0,                                                           /* tp_base */
-    0,                                                           /* tp_dict */
-    0,                                                           /* tp_descr_get */
-    0,                                                           /* tp_descr_set */
-    0,                                                           /* tp_dictoffset */
-    0,                       /* tp_init */
-    0,                                                           /* tp_alloc */
-    DynamsoftMrzReader_new,                                  /* tp_new */
+    sizeof(DynamsoftMrzReader),                                     /* tp_basicsize */
+    0,                                                              /* tp_itemsize */
+    (destructor)DynamsoftMrzReader_dealloc,                         /* tp_dealloc */
+    0,                                                              /* tp_print */
+    0,                                                              /* tp_getattr */
+    0,                                                              /* tp_setattr */
+    0,                                                              /* tp_reserved */
+    0,                                                              /* tp_repr */
+    0,                                                              /* tp_as_number */
+    0,                                                              /* tp_as_sequence */
+    0,                                                              /* tp_as_mapping */
+    0,                                                              /* tp_hash  */
+    0,                                                              /* tp_call */
+    0,                                                              /* tp_str */
+    PyObject_GenericGetAttr,                                        /* tp_getattro */
+    PyObject_GenericSetAttr,                                        /* tp_setattro */
+    0,                                                              /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,                       /*tp_flags*/
+    "DynamsoftMrzReader",                                           /* tp_doc */
+    0,                                                              /* tp_traverse */
+    0,                                                              /* tp_clear */
+    0,                                                              /* tp_richcompare */
+    0,                                                              /* tp_weaklistoffset */
+    0,                                                              /* tp_iter */
+    0,                                                              /* tp_iternext */
+    instance_methods,                                               /* tp_methods */
+    0,                                                              /* tp_members */
+    0,                                                              /* tp_getset */
+    0,                                                              /* tp_base */
+    0,                                                              /* tp_dict */
+    0,                                                              /* tp_descr_get */
+    0,                                                              /* tp_descr_set */
+    0,                                                              /* tp_dictoffset */
+    0,                                                              /* tp_init */
+    0,                                                              /* tp_alloc */
+    DynamsoftMrzReader_new,                                         /* tp_new */
 };
 
 #endif
