@@ -17,7 +17,7 @@ public:
     std::mutex m;
     std::condition_variable cv;
     std::queue<std::function<void()>> tasks = {};
-    std::atomic<bool> running = true;
+    volatile bool running;
 	std::thread t;
 };
 
@@ -356,7 +356,7 @@ void run(DynamsoftMrzReader *self)
     {
         std::function<void()> task;
         std::unique_lock<std::mutex> lk(self->worker->m);
-        self->worker->cv.wait(lk, [self]
+        self->worker->cv.wait(lk, [&]
                               { return !self->worker->tasks.empty() || !self->worker->running; });
         task = std::move(self->worker->tasks.front());
         self->worker->tasks.pop();
