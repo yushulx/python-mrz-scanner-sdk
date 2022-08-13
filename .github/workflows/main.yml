@@ -8,7 +8,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [windows-latest, ubuntu-latest]
         python-version: ['3.6', '3.7', '3.8', '3.9', '3.10']
 
     steps:
@@ -29,8 +29,8 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           pip install -U wheel setuptools auditwheel patchelf
-          python setup.py bdist_wheel
-          auditwheel repair dist/mrz_scanner_sdk*.whl --plat manylinux2014_$(uname -m)
+          pip wheel . --verbose -w dist
+          auditwheel repair dist/mrz_scanner_sdk*.whl --plat manylinux_2_24_$(uname -m)
           
       - name: Build wheels for Windows
         if: matrix.os == 'windows-latest'
