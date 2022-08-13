@@ -11,13 +11,14 @@
 #include <queue>
 #include <functional>
 
-class WorkerStatus
+class WorkerThread
 {
 public:
     std::mutex m;
     std::condition_variable cv;
     std::queue<std::function<void()>> tasks = {};
-    volatile bool running = true;
+    std::atomic<bool> running = true;
+	std::thread t;
 };
 
 typedef struct
@@ -25,8 +26,7 @@ typedef struct
     PyObject_HEAD 
     void *handler;
     PyObject *callback;
-    std::thread *worker;
-    WorkerStatus *status;
+    WorkerThread *worker;
 } DynamsoftMrzReader;
 
 static int DynamsoftMrzReader_clear(DynamsoftMrzReader *self)
@@ -43,20 +43,14 @@ static int DynamsoftMrzReader_clear(DynamsoftMrzReader *self)
         self->handler = NULL;
     }
 
-    if (self->status)
-    {
-        self->status->running = false;
-        self->status->cv.notify_one();
-        self->worker->join();
-        delete self->status;
-        self->status = NULL;
-        printf("Quit native thread.\n");
-    }
-
     if (self->worker)
     {
+        self->worker->running = false;
+        self->worker->cv.notify_one();
+        self->worker->t.join();
         delete self->worker;
         self->worker = NULL;
+        printf("Quit native thread.\n");
     }
 
     return 0;
@@ -76,7 +70,6 @@ static PyObject *DynamsoftMrzReader_new(PyTypeObject *type, PyObject *args, PyOb
     if (self != NULL)
     {
         self->handler = DLR_CreateInstance();
-        self->status = NULL;
         self->worker = NULL;
         self->callback = NULL;
     }
@@ -318,17 +311,17 @@ static PyObject *decodeMatAsync(PyObject *obj, PyObject *args)
     unsigned char *data = (unsigned char *)malloc(len);
     memcpy(data, buffer, len);
 
-    std::unique_lock<std::mutex> lk(self->status->m);
-    if (self->status->tasks.size() > 1)
+    std::unique_lock<std::mutex> lk(self->worker->m);
+    if (self->worker->tasks.size() > 1)
     {
         std::queue<std::function<void()>> empty = {};
-        std::swap(self->status->tasks, empty);
+        std::swap(self->worker->tasks, empty);
     }
     std::function<void()> task_function = std::bind(scan, self, data, width, height, stride, format, len);
-    self->status->tasks.push(task_function);
+    self->worker->tasks.push(task_function);
+    self->worker->cv.notify_one();
     lk.unlock();
-
-    self->status->cv.notify_one();
+    
     Py_DECREF(memoryview);
     return Py_BuildValue("i", 0);
 }
@@ -359,14 +352,14 @@ static PyObject *loadModel(PyObject *obj, PyObject *args)
 
 void run(DynamsoftMrzReader *self)
 {
-    while (self->status->running)
+    while (self->worker->running)
     {
         std::function<void()> task;
-        std::unique_lock<std::mutex> lk(self->status->m);
-        self->status->cv.wait(lk, [self]
-                              { return !self->status->tasks.empty() || !self->status->running; });
-        task = std::move(self->status->tasks.front());
-        self->status->tasks.pop();
+        std::unique_lock<std::mutex> lk(self->worker->m);
+        self->worker->cv.wait(lk, [self]
+                              { return !self->worker->tasks.empty() || !self->worker->running; });
+        task = std::move(self->worker->tasks.front());
+        self->worker->tasks.pop();
         lk.unlock();
 
         task();
@@ -400,9 +393,9 @@ static PyObject *addAsyncListener(PyObject *obj, PyObject *args)
 
     if (self->worker == NULL)
     {
-        self->status = new WorkerStatus();
-        self->status->running = true;
-        self->worker = new std::thread(run, self);
+        self->worker = new WorkerThread();
+        self->worker->running = true;
+        self->worker->t = std::thread(&run, self);
     }
 
     printf("Running native thread...\n");

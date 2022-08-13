@@ -53,8 +53,8 @@ scanner = mrzscanner.createInstance()
 # # load MRZ model
 scanner.loadModel(mrzscanner.get_model_path())
 
-print('')
 # decodeFile()
+print('')
 print('Test decodeFile()')
 s = ""
 results = scanner.decodeFile("images/1.png")
@@ -63,9 +63,9 @@ for result in results:
     s += result.text + '\n'
 print('')
 print(check(s[:-1]))
-print('')
 
 # decodeMat()
+print('')
 print('Test decodeMat()')
 s = ""
 import cv2
@@ -79,6 +79,7 @@ print('')
 print(check(s[:-1]))
 
 # decodeMatAsync()
+print('')
 print('Test decodeMatAsync()')
 def callback(results):
     s = ""
@@ -92,9 +93,9 @@ def callback(results):
 import cv2
 image = cv2.imread("images/3.jpg")
 scanner.addAsyncListener(callback)
-for i in range (2):
-    scanner.decodeMatAsync(image)
-    sleep(1)
+scanner.decodeMatAsync(image)
+sleep(1)
+    
 
 
 

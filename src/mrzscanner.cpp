@@ -42,7 +42,6 @@ static PyObject *createInstance(PyObject *obj, PyObject *args)
 
     DynamsoftMrzReader* reader = PyObject_New(DynamsoftMrzReader, &DynamsoftMrzReaderType);
     reader->handler = DLR_CreateInstance();
-    reader->status = NULL;
     reader->worker = NULL;
     reader->callback = NULL;
     return (PyObject *)reader;
@@ -102,4 +101,5 @@ PyMODINIT_FUNC PyInit_mrzscanner(void)
 	PyModule_AddStringConstant(module, "version", DLR_GetVersion());
     return module;
 }
+
 
