@@ -144,7 +144,7 @@ class CustomInstall(install):
 
 
 setup(name='mrz-scanner-sdk',
-      version='1.0.7',
+      version='1.0.8',
       description='Machine readable zone (MRZ) reading SDK for passport, Visa, ID card and travel document.',
       long_description=long_description,
       long_description_content_type="text/markdown",

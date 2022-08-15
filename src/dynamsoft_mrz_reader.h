@@ -358,6 +358,10 @@ void run(DynamsoftMrzReader *self)
         std::unique_lock<std::mutex> lk(self->worker->m);
         self->worker->cv.wait(lk, [&]
                               { return !self->worker->tasks.empty() || !self->worker->running; });
+        if (!self->worker->running)
+		{
+			break;
+		}
         task = std::move(self->worker->tasks.front());
         self->worker->tasks.pop();
         lk.unlock();
@@ -367,7 +371,7 @@ void run(DynamsoftMrzReader *self)
 }
 
 /**
- * Register callback function to receive barcode decoding result asynchronously.
+ * Register callback function to receive MRZ decoding result asynchronously.
  */
 static PyObject *addAsyncListener(PyObject *obj, PyObject *args)
 {

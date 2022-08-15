@@ -88,12 +88,12 @@ try:
 
     threadn = 1 # cv2.getNumberOfCPUs()
     pool = ThreadPool(processes = threadn)
-    barcodeTasks = deque()
+    mrzTasks = deque()
     
     while True:
         ret, frame = cap.read()
-        while len(barcodeTasks) > 0 and barcodeTasks[0].ready():
-            results = barcodeTasks.popleft().get()
+        while len(mrzTasks) > 0 and mrzTasks[0].ready():
+            results = mrzTasks.popleft().get()
             if results != None:
                 s = ''
                 for result in results:
@@ -111,9 +111,9 @@ try:
                 
                 print(check(s[:-1]))
                 
-        if len(barcodeTasks) < threadn:
+        if len(mrzTasks) < threadn:
             task = pool.apply_async(process_frame, (frame.copy(), ))
-            barcodeTasks.append(task)
+            mrzTasks.append(task)
 
         cv2.imshow('MRZ Scanner', frame)
         ch = cv2.waitKey(1)
