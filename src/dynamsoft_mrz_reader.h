@@ -260,7 +260,10 @@ void scan(DynamsoftMrzReader *self, unsigned char *buffer, int width, int height
     }
 
     free(buffer);
-    onResultReady(self);
+    if (self->callback)
+    {
+        onResultReady(self);
+    }
 }
 
 /**
