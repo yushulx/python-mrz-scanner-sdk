@@ -102,4 +102,3 @@ PyMODINIT_FUNC PyInit_mrzscanner(void)
     return module;
 }
 
-

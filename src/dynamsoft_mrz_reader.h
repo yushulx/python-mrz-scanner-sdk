@@ -11,12 +11,19 @@
 #include <queue>
 #include <functional>
 
+class Task
+{
+public:
+    std::function<void()> func;
+    unsigned char* buffer;
+};
+
 class WorkerThread
 {
 public:
     std::mutex m;
     std::condition_variable cv;
-    std::queue<std::function<void()>> tasks = {};
+    std::queue<Task> tasks = {};
     volatile bool running;
 	std::thread t;
 };
@@ -29,7 +36,19 @@ typedef struct
     WorkerThread *worker;
 } DynamsoftMrzReader;
 
-static int DynamsoftMrzReader_clear(DynamsoftMrzReader *self)
+void clearTasks(DynamsoftMrzReader *self)
+{
+    if (self->worker->tasks.size() > 0)
+    {
+        for (int i = 0; i < self->worker->tasks.size(); i++)
+        {
+            free(self->worker->tasks.front().buffer);
+            self->worker->tasks.pop();
+        }
+    }
+}
+
+void clear(DynamsoftMrzReader *self)
 {
     if (self->callback)
     {
@@ -37,20 +56,25 @@ static int DynamsoftMrzReader_clear(DynamsoftMrzReader *self)
         self->callback = NULL;
     }
 
-    if (self->handler)
-    {
-        DLR_DestroyInstance(self->handler);
-        self->handler = NULL;
-    }
-
     if (self->worker)
     {
         self->worker->running = false;
+        clearTasks(self);
         self->worker->cv.notify_one();
         self->worker->t.join();
         delete self->worker;
         self->worker = NULL;
         printf("Quit native thread.\n");
+    }
+}
+
+static int DynamsoftMrzReader_clear(DynamsoftMrzReader *self)
+{
+    clear(self);
+    if (self->handler)
+    {
+        DLR_DestroyInstance(self->handler);
+        self->handler = NULL;
     }
 
     return 0;
@@ -277,7 +301,7 @@ static PyObject *decodeMatAsync(PyObject *obj, PyObject *args)
     DynamsoftMrzReader *self = (DynamsoftMrzReader *)obj;
     PyObject *o;
     if (!PyArg_ParseTuple(args, "O", &o))
-        return NULL;
+        Py_BuildValue("i", -1);
 
     Py_buffer *view;
     int nd;
@@ -285,7 +309,7 @@ static PyObject *decodeMatAsync(PyObject *obj, PyObject *args)
     if (memoryview == NULL)
     {
         PyErr_Clear();
-        return NULL;
+        Py_BuildValue("i", -1);
     }
 
     view = PyMemoryView_GET_BUFFER(memoryview);
@@ -315,13 +339,12 @@ static PyObject *decodeMatAsync(PyObject *obj, PyObject *args)
     memcpy(data, buffer, len);
 
     std::unique_lock<std::mutex> lk(self->worker->m);
-    if (self->worker->tasks.size() > 1)
-    {
-        std::queue<std::function<void()>> empty = {};
-        std::swap(self->worker->tasks, empty);
-    }
+    clearTasks(self);
     std::function<void()> task_function = std::bind(scan, self, data, width, height, stride, format, len);
-    self->worker->tasks.push(task_function);
+    Task task;
+    task.func = task_function;
+    task.buffer = data;
+    self->worker->tasks.push(task);
     self->worker->cv.notify_one();
     lk.unlock();
     
@@ -343,7 +366,7 @@ static PyObject *loadModel(PyObject *obj, PyObject *args)
     char *pFileName; // File name
     if (!PyArg_ParseTuple(args, "s", &pFileName))
     {
-        return NULL;
+        Py_BuildValue("i", -1);
     }
 
     char errorMsgBuffer[512];
@@ -365,7 +388,7 @@ void run(DynamsoftMrzReader *self)
 		{
 			break;
 		}
-        task = std::move(self->worker->tasks.front());
+        task = std::move(self->worker->tasks.front().func);
         self->worker->tasks.pop();
         lk.unlock();
 
@@ -383,13 +406,13 @@ static PyObject *addAsyncListener(PyObject *obj, PyObject *args)
     PyObject *callback = NULL;
     if (!PyArg_ParseTuple(args, "O", &callback))
     {
-        return NULL;
+        Py_BuildValue("i", -1);
     }
 
     if (!PyCallable_Check(callback))
     {
         PyErr_SetString(PyExc_TypeError, "parameter must be callable");
-        return NULL;
+        Py_BuildValue("i", -1);
     }
     else
     {
@@ -409,12 +432,23 @@ static PyObject *addAsyncListener(PyObject *obj, PyObject *args)
     return Py_BuildValue("i", 0);
 }
 
+/**
+ * Clear native thread and tasks.
+ */
+static PyObject *clearAsyncListener(PyObject *obj, PyObject *args)
+{
+    DynamsoftMrzReader *self = (DynamsoftMrzReader *)obj;
+    clear(self);
+    return Py_BuildValue("i", 0);
+}
+
 static PyMethodDef instance_methods[] = {
     {"decodeFile", decodeFile, METH_VARARGS, NULL},
     {"decodeMat", decodeMat, METH_VARARGS, NULL},
     {"loadModel", loadModel, METH_VARARGS, NULL},
     {"addAsyncListener", addAsyncListener, METH_VARARGS, NULL},
     {"decodeMatAsync", decodeMatAsync, METH_VARARGS, NULL},
+    {"clearAsyncListener", clearAsyncListener, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}};
 
 static PyTypeObject DynamsoftMrzReaderType = {
