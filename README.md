@@ -1,5 +1,5 @@
 # Python Extension: MRZ Scanner SDK 
-The project is a Python-C++ binding of [Dynamsoft Label Recognizer](https://www.dynamsoft.com/label-recognition/overview/). It aims to help developers build **Python MRZ scanner** apps on Windows and Linux.
+The goal of this project is to provide a Python-C++ binding for [Dynamsoft Label Recognizer](https://www.dynamsoft.com/label-recognition/overview/), enabling developers to create **MRZ scanner** applications for both Windows and Linux platforms using Python.
 
 ## License Key
 Get a [30-day FREE trial license](https://www.dynamsoft.com/customer/license/trialLicense/?product=dlr) to activate the SDK.
@@ -77,7 +77,7 @@ mrzscanner.initLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUi
 scanner = mrzscanner.createInstance()
 
 # load MRZ model
-scanner.loadModel(mrzscanner.get_model_path())
+scanner.loadModel(mrzscanner.load_settings())
 
 print('')
 # decodeFile()
@@ -106,7 +106,7 @@ print('')
 - `scanner.loadModel(<model configuration file>)` # load MRZ model
     
     ```python
-    scanner.loadModel(mrzscanner.get_model_path())
+    scanner.loadModel(mrzscanner.load_settings())
     ```
 - `decodeFile(<image file>)` # recognize MRZ from an image file
 

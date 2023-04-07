@@ -77,7 +77,7 @@ try:
     scanner = mrzscanner.createInstance()
 
     # load MRZ model
-    scanner.loadModel(mrzscanner.get_model_path())
+    scanner.loadModel(mrzscanner.load_settings())
     
     # open camera
     cap = cv2.VideoCapture(0)

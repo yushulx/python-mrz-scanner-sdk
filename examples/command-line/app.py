@@ -72,7 +72,7 @@ def scanmrz():
         scanner = mrzscanner.createInstance()
 
         # load MRZ model
-        scanner.loadModel(mrzscanner.get_model_path())
+        scanner.loadModel(mrzscanner.load_settings())
         s = ""
         if ui:
             import cv2

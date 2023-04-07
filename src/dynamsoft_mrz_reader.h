@@ -355,7 +355,7 @@ static PyObject *decodeMatAsync(PyObject *obj, PyObject *args)
 /**
  * Load MRZ configuration file.
  *
- * @param string filename
+ * @param string template content
  *
  * @return loading status
  */
@@ -363,14 +363,14 @@ static PyObject *loadModel(PyObject *obj, PyObject *args)
 {
     DynamsoftMrzReader *self = (DynamsoftMrzReader *)obj;
 
-    char *pFileName; // File name
-    if (!PyArg_ParseTuple(args, "s", &pFileName))
+    char *settings; // File name
+    if (!PyArg_ParseTuple(args, "s", &settings))
     {
         Py_BuildValue("i", -1);
     }
 
     char errorMsgBuffer[512];
-    int ret = DLR_AppendSettingsFromFile(self->handler, pFileName, errorMsgBuffer, 512);
+    int ret = DLR_AppendSettingsFromString(self->handler, settings, errorMsgBuffer, 512);
     printf("Load MRZ model: %s\n", errorMsgBuffer);
 
     return Py_BuildValue("i", ret);

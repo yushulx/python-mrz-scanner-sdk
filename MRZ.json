@@ -32,7 +32,8 @@
 				"Sensitivity" : 8
 			}
 		 ],
-         "ReferenceRegionNameArray" : [ "DRRegion" ]
+         "ReferenceRegionNameArray" : [ "DRRegion" ],
+         "Timeout": 20000
       }
    ],
    "LineSpecificationArray" : [

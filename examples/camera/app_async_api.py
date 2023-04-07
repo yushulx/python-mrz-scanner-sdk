@@ -51,7 +51,7 @@ mrzscanner.initLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUi
 scanner = mrzscanner.createInstance()
 
 # # load MRZ model
-scanner.loadModel(mrzscanner.get_model_path())
+scanner.loadModel(mrzscanner.load_settings())
 
 g_results = None
 
