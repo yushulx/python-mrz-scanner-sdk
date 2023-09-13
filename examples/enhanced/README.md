@@ -21,3 +21,5 @@ pip install mrz-scanner-sdk document-scanner-sdk dlib mediapipe retina-face open
     python app.py passport.jpg # without face detection
     python combine.py passport_180.jpg # with face detection
     ```
+
+    ![passport-mrz-detection-any-orientation](https://github.com/yushulx/python-mrz-scanner-sdk/assets/2202306/d9e8e185-01a5-4123-92c7-8f83e8d51bc3)
