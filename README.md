@@ -1,27 +1,30 @@
-# Python Extension: MRZ Scanner SDK 
-The goal of this project is to provide a Python-C++ binding for [Dynamsoft Label Recognizer](https://www.dynamsoft.com/label-recognition/overview/), enabling developers to create **MRZ scanner** applications for both Windows and Linux platforms using Python.
+# Python MRZ Scanner SDK
+This project provides a Python-C++ binding for the [Dynamsoft Label Recognizer v2.x](https://www.dynamsoft.com/label-recognition/overview/), allowing developers to **build MRZ (Machine Readable Zone)** scanner applications on both **Windows** and **Linux** platforms using Python.
 
 ## License Key
-Get a [30-day FREE trial license](https://www.dynamsoft.com/customer/license/trialLicense/?product=dlr) to activate the SDK.
+To activate the SDK, obtain a [30-day FREE trial license](https://www.dynamsoft.com/customer/license/trialLicense/?product=dlr).
 
 
-## Supported Python Edition
+## Supported Python Versions
 * Python 3.x
 
-## Install Dependencies
+## Installation
+Install the required dependencies:
 ```bash 
 pip install mrz opencv-python
 ```
 
 ## Command-line Usage
-```bash 
-$ scanmrz <file-name> -l <license-key>
+- Scan MRZ from an image file:
+    ```bash 
+    scanmrz <file-name> -l <license-key>
+    ```
+- Scan MRZ from a webcam:
+    ```bash 
+    scanmrz <file-name> -u 1 -l <license-key>
+    ```
 
-# Show the image with OpenCV
-$ scanmrz <file-name> -u 1 -l <license-key>
-```
-
-![python mrz scanner](https://www.dynamsoft.com/codepool/img/2022/08/python-mrz-scanner.png)
+    ![python mrz scanner](https://www.dynamsoft.com/codepool/img/2022/08/python-mrz-scanner.png)
 
 ## Quick Start
 ```python
@@ -71,7 +74,7 @@ def check(lines):
     return 'No valid MRZ information found'
 
 # set license
-mrzscanner.initLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==")
+mrzscanner.initLicense("LICENSE-KEY")
 
 # initialize mrz scanner
 scanner = mrzscanner.createInstance()
@@ -91,31 +94,31 @@ print(check(s[:-1]))
 print('')
 ```
 
-## Methods
-- `mrzscanner.initLicense('YOUR-LICENSE-KEY')` # set the license globally
+## API Reference
+- `mrzscanner.initLicense('YOUR-LICENSE-KEY')`: Initialize the SDK with your license key.
     
     ```python
-    mrzscanner.initLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==")
+    mrzscanner.initLicense("LICENSE-KEY")
     ```
 
-- `mrzscanner.createInstance()` # create a MRZ scanner instance
+- `mrzscanner.createInstance()`: Create an instance of the MRZ scanner.
     
     ```python
     scanner = mrzscanner.createInstance()
     ```
-- `scanner.loadModel(<model configuration file>)` # load MRZ model
+- `scanner.loadModel(<model configuration file>)`: Load the MRZ model configuration.
     
     ```python
     scanner.loadModel(mrzscanner.load_settings())
     ```
-- `decodeFile(<image file>)` # recognize MRZ from an image file
+- `decodeFile(<image file>)`: Recognize MRZ from an image file.
 
     ```python
     results = scanner.decodeFile(<image-file>)
     for result in results:
         print(result.text)
     ```
-- `decodeMat(<opencv mat data>)` # recognize MRZ from OpenCV Mat
+- `decodeMat(<opencv mat data>)`: Recognize MRZ from an OpenCV Mat.
     ```python
     import cv2
     image = cv2.imread(<image-file>)
@@ -123,8 +126,8 @@ print('')
     for result in results:
         print(result.text)
     ```
-- `addAsyncListener(callback function)` # start a native thread and register a Python function for receiving the MRZ recognition results
-- `decodeMatAsync(<opencv mat data>)` # recognize MRZ from OpenCV Mat asynchronously
+- `addAsyncListener(callback function)`: Register a callback function to receive MRZ recognition results asynchronously.
+- `decodeMatAsync(<opencv mat data>)`: Recognize MRZ from OpenCV Mat asynchronously.
     ```python
     def callback(results):
         s = ""
