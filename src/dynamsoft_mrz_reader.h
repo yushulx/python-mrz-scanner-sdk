@@ -354,15 +354,18 @@ static PyObject *decodeMatAsync(PyObject *obj, PyObject *args)
     unsigned char *data = (unsigned char *)malloc(len);
     memcpy(data, buffer, len);
 
-    std::unique_lock<std::mutex> lk(self->worker->m);
-    clearTasks(self);
-    std::function<void()> task_function = std::bind(scan, self, data, width, height, stride, format, len);
-    Task task;
-    task.func = task_function;
-    task.buffer = data;
-    self->worker->tasks.push(task);
-    self->worker->cv.notify_one();
-    lk.unlock();
+    if (self->worker)
+    {
+        std::unique_lock<std::mutex> lk(self->worker->m);
+        clearTasks(self);
+        std::function<void()> task_function = std::bind(scan, self, data, width, height, stride, format, len);
+        Task task;
+        task.func = task_function;
+        task.buffer = data;
+        self->worker->tasks.push(task);
+        self->worker->cv.notify_one();
+        lk.unlock();
+    }
 
     Py_DECREF(memoryview);
     return Py_BuildValue("i", 0);
