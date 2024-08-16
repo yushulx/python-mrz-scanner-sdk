@@ -11,11 +11,28 @@
 #include <queue>
 #include <functional>
 
+#if !defined(_WIN32) && !defined(_WIN64)
+#include <sys/time.h>
+#include <atomic>
+
+int gettime()
+{
+    struct timeval time;
+    gettimeofday(&time, NULL);
+    return (int)(time.tv_sec * 1000 * 1000 + time.tv_usec) / 1000;
+}
+#else
+int gettime()
+{
+    return (int)(GetTickCount());
+}
+#endif
+
 class Task
 {
 public:
     std::function<void()> func;
-    unsigned char* buffer;
+    unsigned char *buffer;
 };
 
 class WorkerThread
@@ -24,27 +41,23 @@ public:
     std::mutex m;
     std::condition_variable cv;
     std::queue<Task> tasks = {};
-    volatile bool running;
-	std::thread t;
+    std::atomic<bool> running;
+    std::thread t;
 };
 
 typedef struct
 {
-    PyObject_HEAD 
-    void *handler;
+    PyObject_HEAD void *handler;
     PyObject *callback;
     WorkerThread *worker;
 } DynamsoftMrzReader;
 
 void clearTasks(DynamsoftMrzReader *self)
 {
-    if (self->worker->tasks.size() > 0)
+    while (!self->worker->tasks.empty())
     {
-        for (int i = 0; i < self->worker->tasks.size(); i++)
-        {
-            free(self->worker->tasks.front().buffer);
-            self->worker->tasks.pop();
-        }
+        free(self->worker->tasks.front().buffer);
+        self->worker->tasks.pop();
     }
 }
 
@@ -58,9 +71,12 @@ void clear(DynamsoftMrzReader *self)
 
     if (self->worker)
     {
+        std::unique_lock<std::mutex> lk(self->worker->m);
         self->worker->running = false;
         clearTasks(self);
         self->worker->cv.notify_one();
+        lk.unlock();
+
         self->worker->t.join();
         delete self->worker;
         self->worker = NULL;
@@ -347,7 +363,7 @@ static PyObject *decodeMatAsync(PyObject *obj, PyObject *args)
     self->worker->tasks.push(task);
     self->worker->cv.notify_one();
     lk.unlock();
-    
+
     Py_DECREF(memoryview);
     return Py_BuildValue("i", 0);
 }
@@ -385,9 +401,9 @@ void run(DynamsoftMrzReader *self)
         self->worker->cv.wait(lk, [&]
                               { return !self->worker->tasks.empty() || !self->worker->running; });
         if (!self->worker->running)
-		{
-			break;
-		}
+        {
+            break;
+        }
         task = std::move(self->worker->tasks.front().func);
         self->worker->tasks.pop();
         lk.unlock();

@@ -48,7 +48,7 @@ def copyfiles(src, dst):
             shutil.copy2(libpath, dst)
     else:
         shutil.copy2(src, dst)
-        
+
 
 class CustomBuildExt(build_ext.build_ext):
     def run(self):
@@ -70,6 +70,7 @@ class CustomBuildExt(build_ext.build_ext):
         copyfiles(os.path.join(os.path.join(
             Path(__file__).parent, 'model')), model_dest)
         shutil.copy2('MRZ.json', dst)
+
 
 class CustomBuildExtDev(build_ext.build_ext):
     def run(self):
@@ -97,7 +98,7 @@ class CustomInstall(install):
 
 
 setup(name='mrz-scanner-sdk',
-      version='1.1.0',
+      version='1.1.1',
       description='Machine readable zone (MRZ) reading SDK for passport, Visa, ID card and travel document.',
       long_description=long_description,
       long_description_content_type="text/markdown",
@@ -126,6 +127,7 @@ setup(name='mrz-scanner-sdk',
           "Programming Language :: Python :: 3.9",
           "Programming Language :: Python :: 3.10",
           "Programming Language :: Python :: 3.11",
+          "Programming Language :: Python :: 3.12",
           "Programming Language :: C++",
           "Programming Language :: Python :: Implementation :: CPython",
           "Topic :: Scientific/Engineering",
