@@ -2,7 +2,7 @@
 This project provides a Python-C++ binding for the [Dynamsoft Label Recognizer v2.x](https://www.dynamsoft.com/label-recognition/overview/), allowing developers to build **MRZ (Machine Readable Zone)** scanner applications on both **Windows** and **Linux** platforms using Python.
 
 ## License Key
-To activate the SDK, obtain a [30-day FREE trial license](https://www.dynamsoft.com/customer/license/trialLicense/?product=dlr).
+To activate the SDK, obtain a [30-day FREE trial license](https://www.dynamsoft.com/customer/license/trialLicense/?product=dcv&package=cross-platform).
 
 
 ## Supported Python Versions
