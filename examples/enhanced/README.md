@@ -8,7 +8,7 @@ pip install mrz-scanner-sdk document-scanner-sdk dlib mediapipe retina-face open
 ```
 
 ## Usage
-1. Request a free trial license from [here](https://www.dynamsoft.com/customer/license/trialLicense?product=dlr&package=c_cpp).
+1. Request a free trial license from [here](https://www.dynamsoft.com/customer/license/trialLicense/?product=dcv&package=cross-platform).
 
 2. Set the license key:
 
