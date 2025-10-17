@@ -76,7 +76,7 @@ if __name__ == '__main__':
                         x4 = location.points[3].x
                         y4 = location.points[3].y
                         cv2.drawContours(
-                            frame, [np.intp([(x1, y1), (x2, y2), (x3, y3), (x4, y4)])], 0, (0, 255, 0), 2)
+                            frame, [np.array([(x1, y1), (x2, y2), (x3, y3), (x4, y4)], dtype=np.int32)], 0, (0, 255, 0), 2)
 
                         delta = y3 - y1
                         for line_result in line_results:
