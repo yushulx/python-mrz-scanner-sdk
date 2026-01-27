@@ -35,6 +35,42 @@ except AttributeError:
 
 
 # ==============================================================================
+# Helpers
+# ==============================================================================
+
+def get_document_quad(result: CapturedResult) -> Quadrilateral:
+    """Extract document quadrilateral from processed document result."""
+    processed_document_result: ProcessedDocumentResult = result.get_processed_document_result()
+    if processed_document_result is None or len(processed_document_result.get_detected_quad_result_items()) == 0:
+        return None
+   
+    items = processed_document_result.get_detected_quad_result_items()
+    if len(items) > 0:
+        return items[0].get_location()
+    return None
+
+def save_processed_document_result(result:CapturedResult, page_number:int, output_dir:str):
+    """Save the processed document image."""
+    processed_document_result = result.get_processed_document_result()
+    if processed_document_result is None or len(processed_document_result.get_enhanced_image_result_items()) == 0:
+        print("Page-"+str(page_number), "No processed document result found.")
+        return False
+    items = processed_document_result.get_enhanced_image_result_items()
+    if len(items) > 0:
+        out_path = os.path.join(output_dir, f"document_page_{page_number}.png")
+        image_io = ImageIO()
+        image = items[0].get_image_data()
+        if image != None:
+            errorCode, errorMsg = image_io.save_to_file(image, out_path)
+            if errorCode == 0:
+                print("Document file: " + out_path)
+                return True
+            else:
+                print("Save processed document failed, error:", errorCode, errorMsg)
+        return False
+
+
+# ==============================================================================
 # Data Classes and Helper Classes
 # ==============================================================================
 
@@ -203,7 +239,7 @@ class DCPResultProcessor:
 class CameraCaptureThread(QThread):
     """Thread for capturing camera frames and processing MRZ."""
     
-    frame_ready = Signal(np.ndarray, list)  # frame, list of MRZResult
+    frame_ready = Signal(np.ndarray, list, object, object)  # frame, list of MRZResult, doc_quad, captured_result
     error_occurred = Signal(str)
     
     def __init__(self, cvr: CaptureVisionRouter, irm, camera_index: int = 0):
@@ -241,10 +277,10 @@ class CameraCaptureThread(QThread):
             self.irr.clear()
             
             # Process the frame
-            mrz_results = self._process_frame(frame)
+            mrz_results, doc_quad, captured_result = self._process_frame(frame)
             
             # Emit the frame and results
-            self.frame_ready.emit(frame.copy(), mrz_results)
+            self.frame_ready.emit(frame.copy(), mrz_results, doc_quad, captured_result)
             
         cap.release()
         
@@ -253,9 +289,11 @@ class CameraCaptureThread(QThread):
             self.irm.remove_result_receiver(self.irr)
             self.irr = None
     
-    def _process_frame(self, frame: np.ndarray) -> List[MRZResult]:
+    def _process_frame(self, frame: np.ndarray) -> Tuple[List[MRZResult], Optional['Quadrilateral'], Optional[CapturedResult]]:
         """Process a single frame and return MRZ results."""
         results = []
+        doc_quad = None
+        captured_result = None
         
         try:
             # Convert frame to ImageData format for the SDK
@@ -263,13 +301,18 @@ class CameraCaptureThread(QThread):
             
             # Capture using the SDK
             result = self.cvr.capture(frame, "ReadPassportAndId")
+            captured_result = result
             
             if result is None:
-                return results
+                return results, doc_quad, captured_result
                 
             parsed_result = result.get_parsed_result()
+            
+            # Get document edge
+            doc_quad = get_document_quad(result)
+
             if parsed_result is None:
-                return results
+                return results, doc_quad, captured_result
 
             # Get locations from recognized text lines
             mrz_locations = []
@@ -291,7 +334,7 @@ class CameraCaptureThread(QThread):
         except Exception as e:
             print(f"Error processing frame: {e}")
             
-        return results
+        return results, doc_quad, captured_result
     
     def stop(self):
         self.running = False
@@ -307,13 +350,9 @@ class ImageDisplayWidget(QLabel):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setMinimumSize(640, 480)
-        self.setAlignment(Qt.AlignCenter)
-        self.setStyleSheet("background-color: #2d2d2d; border: 2px dashed #555;")
-        self.setText("Drop image here or use Load button")
-        
-        self.current_image: Optional[np.ndarray] = None
-        self.mrz_results: List[MRZResult] = []
+        self.current_image = None
+        self.mrz_results = []
+        self.doc_quad: Optional['Quadrilateral'] = None
         self.scale_factor = 1.0
         self.offset_x = 0
         self.offset_y = 0
@@ -321,10 +360,11 @@ class ImageDisplayWidget(QLabel):
         # Enable drag and drop
         self.setAcceptDrops(True)
         
-    def set_image(self, image: np.ndarray, mrz_results: List[MRZResult] = None):
+    def set_image(self, image: np.ndarray, mrz_results: List[MRZResult] = None, doc_quad = None):
         """Set the image and optionally MRZ results to display."""
         self.current_image = image
         self.mrz_results = mrz_results or []
+        self.doc_quad = doc_quad
         self._update_display()
         
     def _update_display(self):
@@ -359,10 +399,19 @@ class ImageDisplayWidget(QLabel):
         self.offset_y = (widget_size.height() - scaled_pixmap.height()) // 2
         
         # Draw overlays on the pixmap
-        if self.mrz_results:
+        if self.mrz_results or self.doc_quad:
             painter = QPainter(scaled_pixmap)
             painter.setRenderHint(QPainter.Antialiasing)
             
+            # Draw Document Quad
+            if self.doc_quad:
+                self._draw_quadrilateral(
+                    painter, 
+                    self.doc_quad, 
+                    QColor(0, 0, 255, 200),  # Blue
+                    "Document"
+                )
+
             for result in self.mrz_results:
                 # Draw MRZ locations
                 if result.mrz_locations:
@@ -421,6 +470,7 @@ class ImageDisplayWidget(QLabel):
         """Clear the current display."""
         self.current_image = None
         self.mrz_results = []
+        self.doc_quad = None
         self.setPixmap(QPixmap())
         self.setText("Drop image here or use Load button")
         
@@ -480,6 +530,13 @@ class MRZScannerWindow(QMainWindow):
         
         # Current file list for folder processing
         self.file_list: List[str] = []
+        self.current_file_index = 0
+        
+        # Store current CapturedResult for export
+        self.current_captured_result: Optional[CapturedResult] = None
+
+        # Setup UI
+        self._setup_ui()
         self.current_file_index = 0
         
         # Setup UI
@@ -554,6 +611,11 @@ class MRZScannerWindow(QMainWindow):
         
         # Action buttons
         button_layout = QHBoxLayout()
+
+        self.export_btn = QPushButton("Export Passport")
+        self.export_btn.clicked.connect(self._on_export_clicked)
+        self.export_btn.setEnabled(False)
+        button_layout.addWidget(self.export_btn)
         
         self.load_btn = QPushButton("Load File/Folder")
         self.load_btn.clicked.connect(self._on_load_clicked)
@@ -668,8 +730,12 @@ class MRZScannerWindow(QMainWindow):
         # Update load button text
         if is_folder:
             self.load_btn.setText("Load Folder")
-        else:
+            self.export_btn.setEnabled(self.current_captured_result is not None)
+        elif not is_camera:
             self.load_btn.setText("Load File")
+            self.export_btn.setEnabled(self.current_captured_result is not None)
+        else:
+            self._update_export_button_state()
             
     def _on_load_clicked(self):
         """Handle load button click."""
@@ -763,7 +829,36 @@ class MRZScannerWindow(QMainWindow):
             # Multiple files - treat as folder mode
             self.source_combo.setCurrentText("Image Folder")
             self._load_file_list(image_files)
+
+    def _update_export_button_state(self):
+        """Update export button based on state."""
+        is_camera = self.source_combo.currentText() == "Camera"
+        has_result = self.current_captured_result is not None
+        
+        if is_camera:
+            # Enable if camera is STOPPED and we have a result
+            is_camera_running = self.camera_thread is not None and self.camera_thread.isRunning()
+            self.export_btn.setEnabled(not is_camera_running and has_result)
+        else:
+            # Enable if we have a result
+            self.export_btn.setEnabled(has_result)
+
+    def _on_export_clicked(self):
+        """Handle export button click."""
+        if self.current_captured_result is None:
+            return
             
+        # Ask for output directory
+        out_dir = QFileDialog.getExistingDirectory(self, "Select Output Directory")
+        if not out_dir:
+            return
+            
+        success = save_processed_document_result(self.current_captured_result, 0, out_dir)
+        if success:
+            QMessageBox.information(self, "Export", "Passport image saved successfully.")
+        else:
+            QMessageBox.warning(self, "Export", "Failed to save passport image. No document result found.")
+
     def _load_folder(self, folder_path: str):
         """Load all images from a folder."""
         image_extensions = {'.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tif', '.pdf'}
@@ -837,6 +932,7 @@ class MRZScannerWindow(QMainWindow):
         
         self.start_stop_btn.setText("Stop Camera")
         self.statusBar().showMessage("Camera started")
+        self._update_export_button_state()
         
     def _stop_camera(self):
         """Stop the camera capture."""
@@ -846,64 +942,47 @@ class MRZScannerWindow(QMainWindow):
             
         self.start_stop_btn.setText("Start Camera")
         self.statusBar().showMessage("Camera stopped")
+        self._update_export_button_state()
         
-    def _on_camera_frame(self, frame: np.ndarray, results: List[MRZResult]):
+    def _on_camera_frame(self, frame: np.ndarray, results: List[MRZResult], doc_quad, captured_result):
         """Handle camera frame with results."""
-        self.image_display.set_image(frame, results)
+        self.current_captured_result = captured_result
+        self.image_display.set_image(frame, results, doc_quad)
         self._update_results_display(results)
         
     def _on_camera_error(self, error: str):
         """Handle camera error."""
-        self.statusBar().showMessage(f"Camera error: {error}")
+        self.statusBar().showMessage("Camera stopped")
         self._stop_camera()
-        
+    
     def _process_image_file(self, file_path: str):
-        """Process an image file."""
-        if not os.path.exists(file_path):
-            self.statusBar().showMessage(f"File not found: {file_path}")
-            return
-            
-        # Read image
-        image = cv2.imread(file_path)
-        if image is None:
-            # Try using the SDK for PDF or other formats
-            try:
-                result_array = self.cvr.capture_multi_pages(file_path, "ReadPassportAndId")
-                results = result_array.get_results()
-                if results:
-                    # Process first page
-                    result = results[0]
-                    self._process_captured_result(result, file_path)
-                    return
-            except Exception as e:
-                self.statusBar().showMessage(f"Failed to load image: {file_path}")
-                return
-        else:
-            self._process_image(image, file_path)
-            
-    def _process_image(self, image: np.ndarray, source_name: str):
-        """Process an image and display results."""
-        self.statusBar().showMessage(f"Processing: {source_name}")
-        
-        # Clear previous intermediate results
-        self.irr.clear()
-        
+        """Process a single image file."""
         try:
-            # Capture using the SDK
-            result = self.cvr.capture(image, "ReadPassportAndId")
+            # Read the image first to display it quickly
+            image = cv2.imread(file_path)
+            if image is None:
+                self.statusBar().showMessage("Failed to load image")
+                return
+            
+            # Capture and process the image
+            result = self.cvr.capture(file_path, "ReadPassportAndId")
+            self.current_captured_result = result
             
             if result is None:
                 self.image_display.set_image(image, [])
                 self._update_results_display([])
                 self.statusBar().showMessage("No MRZ detected")
+                self._update_export_button_state()
                 return
                 
             # Process the result
             mrz_results = self._extract_mrz_results(result)
+            doc_quad = get_document_quad(result)
             
             # Update display
-            self.image_display.set_image(image, mrz_results)
+            self.image_display.set_image(image, mrz_results, doc_quad)
             self._update_results_display(mrz_results)
+            self._update_export_button_state()
             
             if mrz_results:
                 self.statusBar().showMessage(f"Found {len(mrz_results)} MRZ zone(s)")
@@ -913,36 +992,8 @@ class MRZScannerWindow(QMainWindow):
         except Exception as e:
             self.statusBar().showMessage(f"Error processing image: {str(e)}")
             self.image_display.set_image(image, [])
-            
-    def _process_captured_result(self, result: CapturedResult, file_path: str):
-        """Process a CapturedResult from multi-page capture."""
-        mrz_results = self._extract_mrz_results(result)
-        
-        # Try to get original image
-        original_image = None
-        for item in result.get_items():
-            if isinstance(item, OriginalImageResultItem):
-                img_data = item.get_image_data()
-                if img_data:
-                    # Convert ImageData to numpy array
-                    # This is a simplified conversion - actual implementation may vary
-                    original_image = cv2.imread(file_path)
-                    break
-                    
-        if original_image is not None:
-            self.image_display.set_image(original_image, mrz_results)
-        else:
-            # If we can't get the original image, just load it directly
-            image = cv2.imread(file_path)
-            if image is not None:
-                self.image_display.set_image(image, mrz_results)
-                
-        self._update_results_display(mrz_results)
-        
-        if mrz_results:
-            self.statusBar().showMessage(f"Found {len(mrz_results)} MRZ zone(s)")
-        else:
-            self.statusBar().showMessage("No MRZ detected")
+            self.current_captured_result = None
+            self._update_export_button_state()
             
     def _extract_mrz_results(self, result: CapturedResult) -> List[MRZResult]:
         """Extract MRZ results from a CapturedResult."""
