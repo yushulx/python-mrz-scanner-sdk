@@ -549,7 +549,7 @@ class MRZScannerWindow(QMainWindow):
         """Initialize the Dynamsoft Capture Vision SDK."""
         # Initialize license
         error_code, error_message = LicenseManager.init_license(
-            "DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9"
+            "DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ=="
         )
         
         if error_code != EnumErrorCode.EC_OK and error_code != EnumErrorCode.EC_LICENSE_WARNING:
