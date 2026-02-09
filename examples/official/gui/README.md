@@ -2,6 +2,10 @@
 
 A GUI application for MRZ (Machine Readable Zone) recognition and parsing with portrait detection and cropping, built with PySide6 and Dynamsoft Capture Vision SDK.
 
+
+https://github.com/user-attachments/assets/1ad49b13-aaf2-44fe-815c-8717d3b60119
+
+
 ## Features
 
 - **Multiple Input Sources**
@@ -59,6 +63,8 @@ Run the application:
 ```bash
 python mrz_scanner_gui.py
 ```
+
+![Python MRZ Scanner](https://www.dynamsoft.com/codepool/img/2026/02/python-passport-mrz-scanner.png)
 
 ### Input Methods
 
