@@ -1,0 +1,4 @@
+dynamsoft-capture-vision-bundle
+PySide6
+opencv-python
+
