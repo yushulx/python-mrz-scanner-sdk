@@ -77,3 +77,5 @@ python mrz_scanner_gui.py
 
 After processing a passport image, click "Export Passport" to save the normalized document image (requires valid captured result).
 
+## Blog
+[How to Build a Python Passport Scanner with Portrait, MRZ and Document Detection](https://www.dynamsoft.com/codepool/python-desktop-mrz-scanner-portrait-detection.html)
