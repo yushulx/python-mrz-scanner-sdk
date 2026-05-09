@@ -326,7 +326,7 @@ class CameraCaptureThread(QThread):
             for item in parsed_result.get_items():
                 processor = DCPResultProcessor(item)
                 portrait_zone = None
-                if processor.is_passport and self.irr:
+                if self.irr:
                     portrait_zone = self.irr.get_portrait_zone(hash_id)
                 mrz_result = processor.to_mrz_result(portrait_zone, mrz_locations)
                 results.append(mrz_result)
@@ -1015,7 +1015,7 @@ class MRZScannerWindow(QMainWindow):
         for item in parsed_result.get_items():
             processor = DCPResultProcessor(item)
             portrait_zone = None
-            if processor.is_passport and self.irr:
+            if self.irr:
                 portrait_zone = self.irr.get_portrait_zone(hash_id)
             mrz_result = processor.to_mrz_result(portrait_zone, mrz_locations)
             mrz_results.append(mrz_result)
