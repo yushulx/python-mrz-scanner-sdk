@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRZ Scanner for Digital KYC</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="brand">
+            <span class="logo" aria-hidden="true">✈️</span>
+            <div>
+                <h1>MRZ Scanner for Digital KYC</h1>
+                <p class="subtitle">Upload a passport or ID card image to extract structured MRZ data</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="upload-card">
+            <div class="upload-area" id="dropZone">
+                <input type="file" id="fileInput" accept="image/png,image/jpeg,image/jpg,image/bmp,image/tiff,image/webp" hidden>
+                <div class="upload-placeholder" id="uploadPlaceholder">
+                    <div class="upload-icon" aria-hidden="true">📁</div>
+                    <p><strong>Drag & drop</strong> an image here or <span class="link">browse</span></p>
+                    <p class="hint">PNG, JPG, BMP, TIFF, WEBP — max 16 MB</p>
+                </div>
+                <div class="preview-wrapper hidden" id="previewWrapper">
+                    <img id="imagePreview" alt="Document preview">
+                    <button class="btn-remove" id="btnRemove" type="button" title="Remove image">✕</button>
+                </div>
+            </div>
+            <div class="actions">
+                <button class="btn btn-secondary" id="btnLoadSample" type="button">Load Sample</button>
+                <button class="btn btn-primary" id="btnScan" type="button" disabled>Scan MRZ</button>
+            </div>
+            <div class="progress hidden" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p class="status" id="statusText"></p>
+        </section>
+
+        <section class="results-card hidden" id="resultsCard">
+            <h2>KYC Extraction Result</h2>
+            <div class="result-meta">
+                <span id="metaZones">MRZ zones found: 0</span>
+                <span id="metaFilename"></span>
+            </div>
+
+            <div id="resultsEmpty" class="results-empty">
+                <p>No MRZ data detected. Try a clearer image or a different document.</p>
+            </div>
+
+            <div id="resultsBody" class="results-body hidden">
+                <div class="field-grid">
+                    <div class="field-card">
+                        <label>Document Type</label>
+                        <div class="value" id="fDocType">—</div>
+                    </div>
+                    <div class="field-card">
+                        <label>Document Number</label>
+                        <div class="value" id="fDocNumber">—</div>
+                    </div>
+                    <div class="field-card">
+                        <label>Surname</label>
+                        <div class="value" id="fSurname">—</div>
+                    </div>
+                    <div class="field-card">
+                        <label>Given Name</label>
+                        <div class="value" id="fGivenName">—</div>
+                    </div>
+                    <div class="field-card">
+                        <label>Nationality</label>
+                        <div class="value" id="fNationality">—</div>
+                    </div>
+                    <div class="field-card">
+                        <label>Issuing Country</label>
+                        <div class="value" id="fIssuer">—</div>
+                    </div>
+                    <div class="field-card">
+                        <label>Gender</label>
+                        <div class="value" id="fGender">—</div>
+                    </div>
+                    <div class="field-card">
+                        <label>Date of Birth</label>
+                        <div class="value" id="fDob">—</div>
+                    </div>
+                    <div class="field-card">
+                        <label>Date of Expiry</label>
+                        <div class="value" id="fExpiry">—</div>
+                    </div>
+                </div>
+
+                <div class="raw-zone">
+                    <h3>Raw MRZ Lines</h3>
+                    <div class="mrz-line" id="rawLine1"></div>
+                    <div class="mrz-line" id="rawLine2"></div>
+                    <div class="mrz-line" id="rawLine3"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <p>Powered by <a href="https://www.dynamsoft.com/label-recognition/overview/" target="_blank">Dynamsoft Capture Vision</a></p>
+    </footer>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
