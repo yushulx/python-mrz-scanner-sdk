@@ -2,6 +2,8 @@
 
 Benchmark the **Dynamsoft Capture Vision** Python SDK for MRZ (Machine-Readable Zone) recognition on the [MIDV-500 passport dataset](https://github.com/fcakyon/midv500).
 
+https://github.com/user-attachments/assets/67ddba89-7092-4d79-aba9-d4fed16f0fcb
+
 ## Overview
 
 This tool evaluates the Dynamsoft Capture Vision Python SDK on passport images from the MIDV-500 dataset and generates:
