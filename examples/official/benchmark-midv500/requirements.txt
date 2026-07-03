@@ -1,0 +1,2 @@
+dynamsoft-capture-vision-bundle>=3.2.1000
+Pillow>=10.0.0
