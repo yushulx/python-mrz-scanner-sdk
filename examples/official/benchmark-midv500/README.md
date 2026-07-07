@@ -159,3 +159,6 @@ The MIDV-500 dataset is publicly available at:
 https://github.com/fcakyon/midv500
 
 Original dataset DOI: https://doi.org/10.18287/2412-6179-2019-43-5-818-824
+
+## Blog
+[How to Benchmark Passport MRZ Recognition Accuracy on MIDV-500 with Python](https://www.dynamsoft.com/codepool/benchmark-mrz-recognition-midv500-dataset-python.html)
