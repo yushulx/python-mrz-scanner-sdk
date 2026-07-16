@@ -1,0 +1,207 @@
+{
+  "name": "MIDV-500 MRZ curated benchmark set",
+  "source_dataset": "D:/images/midv-500-passport",
+  "source_label_count": 3600,
+  "benchmark_label_count": 3315,
+  "excluded_image_count": 285,
+  "exclusion_reason_counts": {
+    "mrz_not_visible_or_cropped": 225,
+    "no_full_mrz_visible": 60
+  },
+  "exclusion_condition_counts": {
+    "PA": 116,
+    "PS": 169
+  },
+  "rules": [
+    {
+      "condition": "PA",
+      "doc": "17",
+      "start": 1,
+      "end": 30,
+      "reason": "no_full_mrz_visible",
+      "note": "No complete, scoreable MRZ is visible in this capture sequence."
+    },
+    {
+      "condition": "PS",
+      "doc": "17",
+      "start": 1,
+      "end": 30,
+      "reason": "no_full_mrz_visible",
+      "note": "No complete, scoreable MRZ is visible in this capture sequence."
+    },
+    {
+      "condition": "PA",
+      "doc": "05",
+      "start": 1,
+      "end": 7,
+      "reason": "mrz_not_visible_or_cropped",
+      "note": "MRZ has not entered the frame or is cropped out in these PA/PS frames."
+    },
+    {
+      "condition": "PA",
+      "doc": "11",
+      "start": 1,
+      "end": 7,
+      "reason": "mrz_not_visible_or_cropped",
+      "note": "MRZ has not entered the frame or is cropped out in these PA/PS frames."
+    },
+    {
+      "condition": "PA",
+      "doc": "16",
+      "start": 1,
+      "end": 7,
+      "reason": "mrz_not_visible_or_cropped",
+      "note": "MRZ has not entered the frame or is cropped out in these PA/PS frames."
+    },
+    {
+      "condition": "PA",
+      "doc": "25",
+      "start": 1,
+      "end": 16,
+      "reason": "mrz_not_visible_or_cropped",
+      "note": "MRZ has not entered the frame or is cropped out in these PA/PS frames."
+    },
+    {
+      "condition": "PA",
+      "doc": "27",
+      "start": 1,
+      "end": 10,
+      "reason": "mrz_not_visible_or_cropped",
+      "note": "MRZ has not entered the frame or is cropped out in these PA/PS frames."
+    },
+    {
+      "condition": "PA",
+      "doc": "32",
+      "start": 1,
+      "end": 23,
+      "reason": "mrz_not_visible_or_cropped",
+      "note": "MRZ has not entered the frame or is cropped out in these PA/PS frames."
+    },
+    {
+      "condition": "PA",
+      "doc": "34",
+      "start": 1,
+      "end": 10,
+      "reason": "mrz_not_visible_or_cropped",
+      "note": "MRZ has not entered the frame or is cropped out in these PA/PS frames."
+    },
+    {
+      "condition": "PA",
+      "doc": "41",
+      "start": 1,
+      "end": 6,
+      "reason": "mrz_not_visible_or_cropped",
+      "note": "MRZ has not entered the frame or is cropped out in these PA/PS frames."
+    },
+    {
+      "condition": "PS",
+      "doc": "05",
+      "start": 1,
+      "end": 4,
+      "reason": "mrz_not_visible_or_cropped",
+      "note": "MRZ has not entered the frame or is cropped out in these PA/PS frames."
+    },
+    {
+      "condition": "PS",
+      "doc": "06",
+      "start": 1,
+      "end": 6,
+      "reason": "mrz_not_visible_or_cropped",
+      "note": "MRZ has not entered the frame or is cropped out in these PA/PS frames."
+    },
+    {
+      "condition": "PS",
+      "doc": "11",
+      "start": 1,
+      "end": 20,
+      "reason": "mrz_not_visible_or_cropped",
+      "note": "MRZ has not entered the frame or is cropped out in these PA/PS frames."
+    },
+    {
+      "condition": "PS",
+      "doc": "16",
+      "start": 1,
+      "end": 19,
+      "reason": "mrz_not_visible_or_cropped",
+      "note": "MRZ has not entered the frame or is cropped out in these PA/PS frames."
+    },
+    {
+      "condition": "PS",
+      "doc": "25",
+      "start": 1,
+      "end": 14,
+      "reason": "mrz_not_visible_or_cropped",
+      "note": "MRZ has not entered the frame or is cropped out in these PA/PS frames."
+    },
+    {
+      "condition": "PS",
+      "doc": "27",
+      "start": 1,
+      "end": 16,
+      "reason": "mrz_not_visible_or_cropped",
+      "note": "MRZ has not entered the frame or is cropped out in these PA/PS frames."
+    },
+    {
+      "condition": "PS",
+      "doc": "28",
+      "start": 1,
+      "end": 22,
+      "reason": "mrz_not_visible_or_cropped",
+      "note": "MRZ has not entered the frame or is cropped out in these PA/PS frames."
+    },
+    {
+      "condition": "PS",
+      "doc": "32",
+      "start": 1,
+      "end": 22,
+      "reason": "mrz_not_visible_or_cropped",
+      "note": "MRZ has not entered the frame or is cropped out in these PA/PS frames."
+    },
+    {
+      "condition": "PS",
+      "doc": "34",
+      "start": 1,
+      "end": 10,
+      "reason": "mrz_not_visible_or_cropped",
+      "note": "MRZ has not entered the frame or is cropped out in these PA/PS frames."
+    },
+    {
+      "condition": "PS",
+      "doc": "41",
+      "start": 1,
+      "end": 6,
+      "reason": "mrz_not_visible_or_cropped",
+      "note": "MRZ has not entered the frame or is cropped out in these PA/PS frames."
+    }
+  ],
+  "latest_report_summary": {
+    "started_at": "2026-07-16T14:01:11",
+    "finished_at": "2026-07-16T14:21:25",
+    "image_count": 3315,
+    "exact_accuracy": 0.483258,
+    "success_rate": 0.641931,
+    "average_match_rate": 0.580906,
+    "avg_ms": 365.21,
+    "min_ms": 81.356,
+    "max_ms": 2168.878,
+    "p50_ms": 258.897,
+    "p95_ms": 919.345,
+    "p99_ms": 1283.72,
+    "total_wall_ms": 1213749.639,
+    "success_count": 2128,
+    "exact_count": 1602
+  },
+  "notes": [
+    "The benchmark denominator keeps all visible and scoreable MRZ pages in the preprocessed MIDV-500 subset.",
+    "Frames without a complete, scoreable MRZ remain excluded and are documented in assets/midv500_mrz_exclusions.csv."
+  ],
+  "coverage_verification": {
+    "source_image_count": 3600,
+    "benchmark_label_count": 3315,
+    "excluded_image_count": 285,
+    "labels_plus_exclusions": 3600,
+    "missing_images": 0,
+    "label_exclusion_overlap": 0,
+    "doc18_images_in_benchmark": 300
+  }
+}

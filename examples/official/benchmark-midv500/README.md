@@ -1,50 +1,70 @@
 # Dynamsoft Capture Vision MRZ Benchmark (Python)
 
-Benchmark the **Dynamsoft Capture Vision** Python SDK for MRZ (Machine-Readable Zone) recognition on the [MIDV-500 passport dataset](https://github.com/fcakyon/midv500).
+Benchmark the **Dynamsoft Capture Vision** Python SDK for MRZ recognition on a curated MIDV-500 subset.
+
+![MIDV-500 MRZ benchmark audit](assets/midv500-mrz-benchmark-cover.png)
 
 ## Overview
 
-This tool evaluates the Dynamsoft Capture Vision Python SDK on passport images from the MIDV-500 dataset and generates:
+The preprocessed MIDV-500 MRZ subset contains 3,600 labeled images. During audit, only 285 images were removed from the scoring denominator because the pixels do not support a complete, scoreable MRZ:
 
-- **report.json** — full machine-readable benchmark output with per-image results
-- **report.html** — polished visual dashboard with accuracy metrics, timing distribution, and per-image detail table
+- 60 images from `PA17` and `PS17` do not contain a complete MRZ.
+- 225 early `PA`/`PS` frames have the MRZ cropped out or not yet visible.
 
-The benchmark measures:
+The benchmark now uses the curated `labels.csv` in this project, containing 3,315 scoreable MRZ images. Difficult images with a visible MRZ remain in the benchmark even when the SDK fails to decode them.
 
-- **Exact accuracy** — percentage of images where the recognized MRZ exactly matches the ground truth
-- **SDK success rate** — percentage of images where the SDK successfully decoded an MRZ
-- **Character-level match rate** — per-image ratio of correctly recognized MRZ characters
-- **Timing** — average, P50, P95, P99, min, and max decode time per image
+The curated set includes 12 MIDV-500 document groups: Azerbaijan passport (`05`), Brazil passport (`06`), Czech passport (`11`), German new passport (`16`), German old passport (`17`), Algerian document with an ID-card style MRZ (`18`), Greek passport (`25`), Croatian passport (`27`), Hungarian passport (`28`), Latvian passport (`32`), Moldovan passport (`34`), and Serbian passport (`41`).
 
-## Dataset
+Audit artifacts:
 
-The [MIDV-500 dataset](https://github.com/fcakyon/midv500) contains 500 video clips covering 50 identity document types (passports, ID cards, driving licences). This benchmark uses the 12 passport document types that contain MRZ zones, totaling 3,600 images across 10 capture-condition subsets.
+- `assets/midv500_mrz_dataset_audit.json` - audit rules, counts, and before/after summaries
+- `assets/midv500_mrz_exclusions.csv` - every excluded image and reason
+- `assets/mrz-benchmark-demo.mp4` - short benchmark/audit demo video
 
-The expected dataset directory structure:
+## Current Results
 
-```
+The full run below uses the updated all-visible-MRZ curation policy (3,315 images):
+
+| Metric | Original 3,600 labels | Curated 3,315-image benchmark |
+|---|---:|---:|
+| Exact MRZ matches | 1,603 (44.5%) | 1,602 (48.3%) |
+| Successful decodes | 2,139 (59.4%) | 2,128 (64.2%) |
+| Average match rate | 53.6% | 58.1% |
+| Average decode time | 386.9 ms | 365.2 ms |
+| P50 decode time | 283.1 ms | 258.9 ms |
+| P95 decode time | 899.6 ms | 919.3 ms |
+| P99 decode time | 1,271.0 ms | 1,283.7 ms |
+
+The curated benchmark denominator is smaller but more defensible: it measures MRZ recognition only on images where a complete MRZ is actually visible and scoreable.
+
+## Dataset Layout
+
+Use the preprocessed MIDV-500 MRZ image folder:
+
+```text
 dataset_root/
-├── CA/
-│   ├── CA05_01.jpg
-│   ├── CA05_02.jpg
-│   └── ...
-├── CS/
-│   └── ...
-├── HA/
-│   └── ...
-...
-├── TS/
-│   └── ...
-└── labels.csv
+  CA/
+    CA05_01.jpg
+    CA05_02.jpg
+    ...
+  CS/
+  HA/
+  HS/
+  KA/
+  KS/
+  PA/
+  PS/
+  TA/
+  TS/
 ```
 
-The `labels.csv` file maps each image to its ground-truth MRZ text. A bundled `labels.csv` is included in this directory for the preprocessed passport subset.
+By default, the script uses the bundled curated `labels.csv` from this project. This avoids accidentally scoring against the unfiltered source labels.
 
 ## Requirements
 
 - Python 3.8+
-- `dynamsoft-capture-vision-bundle` (Dynamsoft Capture Vision SDK)
-- `Pillow` (for .tif to .jpg conversion when downloading raw data)
+- `dynamsoft-capture-vision-bundle`
+- `Pillow` for `.tif` to `.jpg` conversion when downloading raw data
 
 Install dependencies:
 
@@ -54,101 +74,74 @@ pip install -r requirements.txt
 
 ## Usage
 
-### Option 1: Use an existing dataset
+Run the curated accuracy benchmark:
 
 ```bash
-python benchmark_dcv_mrz.py --dataset /path/to/midv-500-passport
+python benchmark_dcv_mrz.py --dataset /path/to/midv-500-mrz --output benchmark_report_dcv_python_full
 ```
 
-The dataset path can also be set via the `MRZ_DATASET_DIR` environment variable:
+Use an explicit ground-truth CSV if needed:
 
 ```bash
-export MRZ_DATASET_DIR=/path/to/midv-500-passport
-python benchmark_dcv_mrz.py
+python benchmark_dcv_mrz.py --dataset /path/to/midv-500-mrz --csv labels.csv
 ```
 
-### Option 2: Download the dataset automatically
+Run a quick smoke test if you want a small local sanity check:
 
 ```bash
-# Download 1 passport type for a quick speed test (no ground truth)
-python benchmark_dcv_mrz.py --download --download-limit 1 --no-ground-truth
-
-# Download 3 passport types for a larger speed test
-python benchmark_dcv_mrz.py --download --download-limit 3 --no-ground-truth
-
-# Download all 12 passport types (~2 GB)
-python benchmark_dcv_mrz.py --download --no-ground-truth
+python benchmark_dcv_mrz.py --dataset /path/to/midv-500-mrz --limit 5 --output benchmark_report_dcv_python
 ```
 
-The download fetches passport document type archives from the MIDV-500 FTP server (`ftp://smartengines.com/midv-500/dataset/`), extracts `.tif` images, and converts them to `.jpg` using Pillow. Raw downloaded data is kept in the `_raw/` subdirectory so re-running does not require re-downloading.
-
-The bundled `labels.csv` uses a preprocessed directory naming scheme (e.g., `CA/CA05_01.jpg`) that does not match the raw MIDV-500 directory structure (e.g., `05_aze_passport/05_aze_passport_001.jpg`). For downloaded data, use `--no-ground-truth` to run a speed-only benchmark. For accuracy comparison, use a preprocessed dataset with `--dataset /path/to/midv-500-passport`.
-
-### Option 3: Speed-only benchmark (no ground truth)
-
-If you have images but no `labels.csv`, run in speed-only mode to measure decode time and success rate without accuracy comparison:
+Run speed-only mode for images without ground truth:
 
 ```bash
 python benchmark_dcv_mrz.py --dataset /path/to/images --no-ground-truth
 ```
 
-### Quick smoke test
-
-Run the benchmark on only 5 images to verify everything works:
+Download raw MIDV-500 source archives for speed-only testing:
 
 ```bash
-python benchmark_dcv_mrz.py --dataset /path/to/midv-500-passport --limit 5 --output benchmark_report_dcv_python
+python benchmark_dcv_mrz.py --download --download-limit 1 --no-ground-truth
+python benchmark_dcv_mrz.py --download --no-ground-truth
 ```
 
-This produces a `benchmark_report_dcv_python/` folder containing `report.json` and `report.html` with results for 5 images. On a clean dataset, expect 100% exact accuracy at ~200 ms per image.
+Downloaded raw data uses MIDV-500 archive folder names, not the curated `CA/`, `CS/`, etc. label paths, so use `--no-ground-truth` unless you preprocess it into the expected structure.
 
-### All command-line options
+## Command-Line Options
 
-```
---dataset PATH          Dataset root folder (or set MRZ_DATASET_DIR env var)
---csv PATH              Ground-truth CSV path (default: <dataset>/labels.csv)
---output PATH           Output folder for reports (default: benchmark_report_dcv_python)
---runs N                Decode each image N times, keep best timing (default: 1)
---limit N               Only process first N images for smoke testing
---license KEY           Dynamsoft license key (default: public trial license)
---template NAME         Capture Vision template name (default: ReadPassportAndId)
---download              Download MIDV-500 passport dataset before benchmarking
---download-limit N      Limit download to N passport types (0 = all 12)
---no-ground-truth       Run without ground-truth comparison (speed-only)
+```text
+--dataset PATH          Dataset root folder (or set MRZ_DATASET_DIR)
+--csv PATH              Ground-truth CSV path (default: bundled curated labels.csv)
+--output PATH           Output folder for report.json and report.html
+--runs N                Decode each image N times, keep best timing
+--limit N               Process only first N matched images
+--license KEY           Dynamsoft license key
+--template NAME         Capture Vision template name
+--download              Download MIDV-500 source images before benchmarking
+--download-limit N      Limit download to N source document groups
+--no-ground-truth       Run without ground-truth comparison
 ```
 
 ## Output
 
-The benchmark generates two files in the output directory:
+The benchmark writes:
 
-### report.json
+- `report.json` - machine-readable summary and per-image results
+- `report.html` - visual dashboard with metrics, timing distribution, and per-image details
 
-Machine-readable JSON with:
-
-- Summary statistics (accuracy, success rate, timing percentiles)
-- Per-image results (recognized MRZ, ground truth, match rate, timing)
-- Run metadata (dataset path, timestamps, SDK template)
-
-### report.html
-
-A visual dashboard with:
-
-- Summary cards (exact accuracy, success rate, average match rate, timing)
-- Timing distribution histogram (SVG)
-- Per-image detail table with pass/fail indicators and match bars
-
-## License
-
-The Dynamsoft Capture Vision SDK requires a license key. A public trial license is included by default. For production use, [get a 30-day free trial license](https://www.dynamsoft.com/customer/license/trialLicense/?product=dcv&package=cross-platform).
+The included `benchmark_report_dcv_python_full/` report uses the curated 3,315-image benchmark set.
 
 ## Files
 
-```
-benchmark_dcv_mrz.py    Main benchmark script
-requirements.txt        Python dependencies
-labels.csv              Bundled ground-truth MRZ labels for the MIDV-500 passport subset
-benchmark_report_dcv_python/        Smoke test report (5 images)
-benchmark_report_dcv_python_full/   Full dataset report (3600 images)
+```text
+benchmark_dcv_mrz.py                         Main benchmark script
+requirements.txt                             Python dependencies
+labels.csv                                   Curated 3,315-image MRZ ground truth
+assets/midv500_mrz_dataset_audit.json        Dataset audit summary and rules
+assets/midv500_mrz_exclusions.csv            Excluded image manifest
+assets/midv500-mrz-benchmark-cover.png       Cover image
+assets/mrz-benchmark-demo.mp4                Demo video
+benchmark_report_dcv_python_full/            Curated full report
 ```
 
 ## Dataset Source
