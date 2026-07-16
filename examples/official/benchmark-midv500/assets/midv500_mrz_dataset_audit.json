@@ -1,6 +1,6 @@
 {
   "name": "MIDV-500 MRZ curated benchmark set",
-  "source_dataset": "D:/images/midv-500-passport",
+  "source_dataset": "MIDV-500 preprocessed MRZ image subset",
   "source_label_count": 3600,
   "benchmark_label_count": 3315,
   "excluded_image_count": 285,

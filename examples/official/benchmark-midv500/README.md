@@ -39,6 +39,8 @@ The full run below uses the updated all-visible-MRZ curation policy (3,315 image
 
 The curated benchmark denominator is smaller but more defensible: it measures MRZ recognition only on images where a complete MRZ is actually visible and scoreable.
 
+The result should be read as a strict exact-match benchmark, not just a detection benchmark. `success_rate` counts any returned MRZ text, while `exact_accuracy` requires the normalized MRZ to match the ground truth exactly. In the latest full run, 526 images returned partial MRZ text but did not match every character. Runtime remained mostly sub-second: 79.1% of images finished in under 500 ms, and only 3.6% exceeded 1,000 ms. The strongest capture conditions were `TA` and `TS`; `PA` and `PS` remained the hardest because of motion, angle, partial entry into frame, and blur.
+
 ## Dataset Layout
 
 Use the preprocessed MIDV-500 MRZ image folder:
