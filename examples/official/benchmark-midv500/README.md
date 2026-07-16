@@ -4,6 +4,8 @@ Benchmark the **Dynamsoft Capture Vision** Python SDK for MRZ recognition on a c
 
 ![MIDV-500 MRZ benchmark audit](assets/midv500-mrz-benchmark-cover.png)
 
+https://github.com/user-attachments/assets/67ddba89-7092-4d79-aba9-d4fed16f0fcb
+
 ## Overview
 
 The preprocessed MIDV-500 MRZ subset contains 3,600 labeled images. During audit, only 285 images were removed from the scoring denominator because the pixels do not support a complete, scoreable MRZ:
@@ -150,3 +152,6 @@ The MIDV-500 dataset is publicly available at:
 https://github.com/fcakyon/midv500
 
 Original dataset DOI: https://doi.org/10.18287/2412-6179-2019-43-5-818-824
+
+## Blog
+[How to Benchmark Passport MRZ Recognition Accuracy on MIDV-500 with Python](https://www.dynamsoft.com/codepool/benchmark-mrz-recognition-midv500-dataset-python.html)
