@@ -2,9 +2,7 @@
 
 Benchmark the **Dynamsoft Capture Vision** Python SDK for MRZ recognition on a curated MIDV-500 subset.
 
-![MIDV-500 MRZ benchmark audit](assets/midv500-mrz-benchmark-cover.png)
-
-https://github.com/user-attachments/assets/67ddba89-7092-4d79-aba9-d4fed16f0fcb
+https://github.com/user-attachments/assets/12334f48-2421-4538-ad39-5bc5e1a0c7fb
 
 ## Overview
 
