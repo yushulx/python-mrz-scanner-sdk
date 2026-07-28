@@ -39,6 +39,34 @@ The curated benchmark denominator is smaller but more defensible: it measures MR
 
 The result should be read as a strict exact-match benchmark, not just a detection benchmark. `success_rate` counts any returned MRZ text, while `exact_accuracy` requires the normalized MRZ to match the ground truth exactly. In the latest full run, 526 images returned partial MRZ text but did not match every character. Runtime remained mostly sub-second: 79.1% of images finished in under 500 ms, and only 3.6% exceeded 1,000 ms. The strongest capture conditions were `TA` and `TS`; `PA` and `PS` remained the hardest because of motion, angle, partial entry into frame, and blur.
 
+## Open-Source Comparison (PassportEye, FastMRZ)
+
+The same curated benchmark was run against the two most popular open-source Python MRZ libraries, using the same 3,315 images, the same `labels.csv`, the same metrics, and the same machine:
+
+| Metric | Dynamsoft Capture Vision | PassportEye 2.2.2 | FastMRZ 2.1.2 |
+|---|---:|---:|---:|
+| Exact MRZ matches | **1,602 (48.33%)** | 9 (0.27%) | 242 (7.30%) |
+| Successful decodes | 2,128 (64.19%) | **2,688 (81.09%)** | 1,005 (30.32%) |
+| Average match rate | **58.09%** | 32.43% | 19.23% |
+| Average decode time | **365.2 ms** | 798.5 ms | 484.0 ms |
+| P50 decode time | **258.9 ms** | 748.3 ms | 479.6 ms |
+| P95 decode time | 919.3 ms | 1,449.5 ms | **639.9 ms** |
+
+Both open-source libraries are Tesseract-OCR pipelines. MIDV-500 frames come from mobile-phone video clips (glare, motion blur, steep angles, cluttered desks), which is exactly the input Tesseract handles worst: PassportEye returns text for most images but misreads `<` as `K` on slanted OCR-B lines, while FastMRZ's strict line filter keeps it silent on 69.7% of frames. The comparison scripts measure both libraries through their raw MRZ text output so MIDV-500's synthetic specimen MRZ data cannot be rejected by their ICAO checksum validators.
+
+Reproduce the comparison runs:
+
+```bash
+pip install -r requirements-compare.txt
+# FastMRZ also needs the custom mrz language file (already bundled in tessdata/):
+# curl -L -o tessdata/mrz.traineddata https://github.com/sivakumar-mahalingam/fastmrz/raw/main/tessdata/mrz.traineddata
+
+python benchmark_passporteye_mrz.py --dataset /path/to/midv-500-mrz --output benchmark_report_passporteye_python_full
+python benchmark_fastmrz_mrz.py --dataset /path/to/midv-500-mrz --output benchmark_report_fastmrz_python_full
+```
+
+Both scripts default to the bundled curated `labels.csv` and support `--limit N` for smoke tests. A system [Tesseract OCR](https://tesseract-ocr.github.io/tessdoc/Installation.html) installation is required on the PATH.
+
 ## Dataset Layout
 
 Use the preprocessed MIDV-500 MRZ image folder:
@@ -136,14 +164,20 @@ The included `benchmark_report_dcv_python_full/` report uses the curated 3,315-i
 ## Files
 
 ```text
-benchmark_dcv_mrz.py                         Main benchmark script
-requirements.txt                             Python dependencies
+benchmark_dcv_mrz.py                         Main benchmark script (Dynamsoft Capture Vision)
+benchmark_passporteye_mrz.py                 Open-source comparison script (PassportEye)
+benchmark_fastmrz_mrz.py                     Open-source comparison script (FastMRZ)
+requirements.txt                             Python dependencies (Dynamsoft benchmark)
+requirements-compare.txt                     Python dependencies (open-source comparison)
+tessdata/mrz.traineddata                     Custom Tesseract language file required by FastMRZ
 labels.csv                                   Curated 3,315-image MRZ ground truth
 assets/midv500_mrz_dataset_audit.json        Dataset audit summary and rules
 assets/midv500_mrz_exclusions.csv            Excluded image manifest
 assets/midv500-mrz-benchmark-cover.png       Cover image
 assets/mrz-benchmark-demo.mp4                Demo video
-benchmark_report_dcv_python_full/            Curated full report
+benchmark_report_dcv_python_full/            Curated full report (Dynamsoft Capture Vision)
+benchmark_report_passporteye_python_full/    Curated full report (PassportEye)
+benchmark_report_fastmrz_python_full/        Curated full report (FastMRZ)
 ```
 
 ## Dataset Source

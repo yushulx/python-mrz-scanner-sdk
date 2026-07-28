@@ -1,0 +1,7 @@
+# Open-source comparison benchmarks (benchmark_passporteye_mrz.py, benchmark_fastmrz_mrz.py)
+# Both additionally require the Tesseract OCR engine installed and available on PATH:
+#   https://tesseract-ocr.github.io/tessdoc/Installation.html
+# FastMRZ also requires the custom mrz.traineddata language file, downloaded into tessdata/:
+#   curl -L -o tessdata/mrz.traineddata https://github.com/sivakumar-mahalingam/fastmrz/raw/main/tessdata/mrz.traineddata
+PassportEye>=2.2.2
+fastmrz>=2.1.2
