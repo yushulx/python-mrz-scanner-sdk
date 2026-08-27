@@ -1,0 +1,5 @@
+dynamsoft-capture-vision-bundle
+dlib
+mediapipe
+retina-face
+opencv-python
