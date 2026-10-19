@@ -62,8 +62,8 @@ jobs:
           name: dist
           path: dist
 
-      - uses: pypa/gh-action-pypi-publish@v1.4.2
+      - uses: pypa/gh-action-pypi-publish@v1.14.2
         with:
           user: __token__
           password: ${{ secrets.pypi_password }}
-          skip_existing: true
+          skip-existing: true
