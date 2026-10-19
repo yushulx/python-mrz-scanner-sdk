@@ -6,7 +6,15 @@ import mrzscanner
 import numpy as np
 
 # set license
-mrzscanner.initLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==")
+license_key = os.environ.get(
+    'DYNAMSOFT_LICENSE_KEY',
+    "DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9",
+)
+error_code, error_message = mrzscanner.initLicense(license_key)
+if not mrzscanner.isLicenseValid(error_code):
+    print("License initialization failed:", error_code, error_message)
+    print("Set DYNAMSOFT_LICENSE_KEY to a valid Dynamsoft license key.")
+    sys.exit(1)
 
 # initialize mrz scanner
 scanner = mrzscanner.createInstance()
@@ -21,10 +29,16 @@ import cv2
 scanner.addAsyncListener(callback)
 
 cap = cv2.VideoCapture(0)
+if not cap.isOpened():
+    print("Error: Cannot open camera 0")
+    scanner.clearAsyncListener()
+    sys.exit(1)
 while True:
     ret, image = cap.read()
-    if image is not None:
-        scanner.decodeMatAsync(image)
+    if not ret or image is None:
+        print("Error: Cannot read frame from camera")
+        break
+    scanner.decodeMatAsync(image)
     
     if g_results != None:
         for result in g_results:
@@ -47,5 +61,5 @@ while True:
 
 
 scanner.clearAsyncListener()
-
-
+cap.release()
+cv2.destroyAllWindows()

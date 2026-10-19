@@ -11,6 +11,7 @@ Usage:
 """
 
 import argparse
+import os
 import mrzscanner
 import sys
 import numpy as np
@@ -56,14 +57,17 @@ Examples:
         
         # Initialize license
         if license_key == '':
+            license_key = os.environ.get('DYNAMSOFT_LICENSE_KEY', '')
+        if license_key == '':
             # Use trial license if no key provided
-            trial_key = "DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ=="
+            trial_key = "DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9"
             error_code, error_msg = mrzscanner.initLicense(trial_key)
         else:
             error_code, error_msg = mrzscanner.initLicense(license_key)
             
-        if error_code != 0:
+        if not mrzscanner.isLicenseValid(error_code):
             print(f"License initialization failed: {error_msg} (Code: {error_code})")
+            print("Pass a valid key with -l/--license or set DYNAMSOFT_LICENSE_KEY.")
             sys.exit(1)
             
         # Initialize MRZ scanner
@@ -99,11 +103,9 @@ Examples:
                 ], np.int32)
                 
                 cv2.polylines(image, [points], True, (0, 255, 0), 2)
-                cv2.putText(image, f"{result.raw_text[0]}", (int(result.x1), int(result.y1 - 40)), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-                
-                cv2.putText(image, f"{result.raw_text[1]}", (int(result.x1), int(result.y1 - 15)), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+                for line_index, line_text in enumerate(result.raw_text[:2]):
+                    cv2.putText(image, line_text, (int(result.x1), int(result.y1 - 40 + line_index * 25)),
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
             
             
             print("\nPress any key to close the image window...")

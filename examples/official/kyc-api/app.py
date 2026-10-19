@@ -65,7 +65,11 @@ router = None
 def init_sdk(license_key: str) -> CaptureVisionRouter:
     """Initialize the Dynamsoft Capture Vision SDK and return a router instance."""
     error_code, error_msg = LicenseManager.init_license(license_key)
-    if error_code != EnumErrorCode.EC_OK and error_code != EnumErrorCode.EC_LICENSE_WARNING:
+    if error_code not in (
+        EnumErrorCode.EC_OK,
+        EnumErrorCode.EC_LICENSE_WARNING,
+        EnumErrorCode.EC_LICENSE_CACHE_USED,
+    ):
         raise RuntimeError(f"License initialization failed: {error_msg}")
 
     router_instance = CaptureVisionRouter()

@@ -3,58 +3,86 @@ import numpy as np
 
 
 def convertImageData2Mat(normalized_image):
-    ba = bytearray(normalized_image.get_bytes())
+    """Convert a Dynamsoft ImageData object to an OpenCV BGR/gray matrix."""
     width = normalized_image.get_width()
     height = normalized_image.get_height()
+    stride = normalized_image.get_stride()
+    pixel_format = normalized_image.get_image_pixel_format()
+    raw = np.frombuffer(normalized_image.get_bytes(), dtype=np.uint8)
 
-    channels = 3
-    if normalized_image.get_image_pixel_format() == EnumImagePixelFormat.IPF_BINARY:
-        channels = 1
-        all = []
-        skip = normalized_image.stride * 8 - width
+    if width <= 0 or height <= 0:
+        raise ValueError(f"Invalid image size: {width}x{height}")
+    if stride <= 0:
+        stride = len(raw) // height
+    if len(raw) < stride * height:
+        raise ValueError(
+            f"ImageData buffer is too small: {len(raw)} bytes, "
+            f"expected {stride * height} (stride={stride}, height={height})"
+        )
 
-        index = 0
-        n = 1
-        for byte in ba:
+    rows = raw[: stride * height].reshape(height, stride)
 
-            byteCount = 7
-            while byteCount >= 0:
-                b = (byte & (1 << byteCount)) >> byteCount
+    if pixel_format in (EnumImagePixelFormat.IPF_BINARY, EnumImagePixelFormat.IPF_BINARYINVERTED):
+        gray = np.unpackbits(rows, axis=1)[:, :width].astype(np.uint8) * 255
+        if pixel_format == EnumImagePixelFormat.IPF_BINARYINVERTED:
+            gray = 255 - gray
+        return np.ascontiguousarray(gray)
 
-                if index < normalized_image.stride * 8 * n - skip:
-                    if b == 1:
-                        all.append(255)
-                    else:
-                        all.append(0)
+    if pixel_format in (
+        EnumImagePixelFormat.IPF_GRAYSCALED,
+        EnumImagePixelFormat.IPF_BINARY_8,
+        EnumImagePixelFormat.IPF_BINARY_8_INVERTED,
+    ):
+        gray = rows[:, :width]
+        if pixel_format == EnumImagePixelFormat.IPF_BINARY_8_INVERTED:
+            gray = 255 - gray
+        return np.ascontiguousarray(gray)
 
-                byteCount -= 1
-                index += 1
+    if pixel_format in (EnumImagePixelFormat.IPF_RGB_888, EnumImagePixelFormat.IPF_BGR_888):
+        channels = 3
+    elif pixel_format in (EnumImagePixelFormat.IPF_ARGB_8888, EnumImagePixelFormat.IPF_ABGR_8888):
+        channels = 4
+    else:
+        raise ValueError(f"Unsupported pixel format: {pixel_format}")
 
-            if index == normalized_image.stride * 8 * n:
-                n += 1
+    if stride < width * channels:
+        raise ValueError(
+            f"Invalid stride {stride} for a {width}x{height} image with "
+            f"{channels} channels"
+        )
 
-        mat = np.array(all, dtype=np.uint8).reshape(height, width, channels)
-        return mat
-
-    elif normalized_image.get_image_pixel_format() == EnumImagePixelFormat.IPF_GRAYSCALED:
-        channels = 1
-
-    mat = np.array(ba, dtype=np.uint8).reshape(height, width, channels)
-
-    return mat
+    mat = rows[:, : width * channels].reshape(height, width, channels)
+    if pixel_format == EnumImagePixelFormat.IPF_RGB_888:
+        return np.ascontiguousarray(mat[:, :, ::-1])  # RGB -> BGR
+    if pixel_format == EnumImagePixelFormat.IPF_BGR_888:
+        return np.ascontiguousarray(mat)
+    if pixel_format == EnumImagePixelFormat.IPF_ARGB_8888:
+        return np.ascontiguousarray(mat[:, :, 3:0:-1])  # ARGB -> BGR
+    # IPF_ABGR_8888 (A, B, G, R) -> BGR
+    return np.ascontiguousarray(mat[:, :, 1:4])
 
 
 def convertMat2ImageData(mat):
-    if len(mat.shape) == 3:
-        height, width, channels = mat.shape
-        pixel_format = EnumImagePixelFormat.IPF_RGB_888
-    else:
-        height, width = mat.shape
-        channels = 1
-        pixel_format = EnumImagePixelFormat.IPF_GRAYSCALED
+    if not isinstance(mat, np.ndarray):
+        raise TypeError("mat must be a numpy.ndarray")
 
-    stride = width * channels
-    imagedata = ImageData(mat.tobytes(), width, height, stride, pixel_format)
+    mat = np.ascontiguousarray(mat)
+    if mat.ndim == 3 and mat.shape[2] == 1:
+        mat = mat[:, :, 0]
+
+    if mat.ndim == 3 and mat.shape[2] == 3:
+        height, width = mat.shape[:2]
+        pixel_format = EnumImagePixelFormat.IPF_RGB_888
+    elif mat.ndim == 2:
+        height, width = mat.shape
+        pixel_format = EnumImagePixelFormat.IPF_GRAYSCALED
+    else:
+        raise ValueError(
+            "Unsupported image shape %r; expected (H, W), (H, W, 1) or (H, W, 3)"
+            % (mat.shape,)
+        )
+
+    imagedata = ImageData(mat.tobytes(), width, height, mat.strides[0], pixel_format)
     return imagedata
 
 
@@ -70,11 +98,10 @@ class MRZResult:
         self.gender = None
         self.date_of_birth = None
         self.date_of_expiry = None
-        if self.doc_type == "MRTD_TD3_PASSPORT":
-            if item.get_field_value("passportNumber") != None and item.get_field_validation_status("passportNumber") != EnumValidationStatus.VS_FAILED:
-                self.doc_id = item.get_field_value("passportNumber")
-            elif item.get_field_value("documentNumber") != None and item.get_field_validation_status("documentNumber") != EnumValidationStatus.VS_FAILED:
-                self.doc_id = item.get_field_value("documentNumber")
+        if item.get_field_value("passportNumber") != None and item.get_field_validation_status("passportNumber") != EnumValidationStatus.VS_FAILED:
+            self.doc_id = item.get_field_value("passportNumber")
+        elif item.get_field_value("documentNumber") != None and item.get_field_validation_status("documentNumber") != EnumValidationStatus.VS_FAILED:
+            self.doc_id = item.get_field_value("documentNumber")
 
         line = item.get_field_value("line1")
         if line is not None:

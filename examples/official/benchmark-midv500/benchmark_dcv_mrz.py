@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Benchmark Dynamsoft Capture Vision MRZ decoding on a curated MIDV-500 subset.
 
@@ -1049,7 +1049,11 @@ def build_html(report: dict, summary: SummaryStats) -> str:
 def init_dynamsoft_router(license_key: str) -> CaptureVisionRouter:
     """Initialise the Dynamsoft license and create a CaptureVisionRouter."""
     code, message = LicenseManager.init_license(license_key)
-    if code not in (EnumErrorCode.EC_OK, EnumErrorCode.EC_LICENSE_WARNING):
+    if code not in (
+        EnumErrorCode.EC_OK,
+        EnumErrorCode.EC_LICENSE_WARNING,
+        EnumErrorCode.EC_LICENSE_CACHE_USED,
+    ):
         raise RuntimeError(
             f"License initialization failed. code={code}, message={message}"
         )

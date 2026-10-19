@@ -22,7 +22,7 @@ Usage:
     
     # Initialize license (required)
     error_code, error_msg = mrzscanner.initLicense("YOUR_LICENSE_KEY")
-    if error_code != 0:
+    if not isLicenseValid(error_code):
         print(f"License error: {error_msg}")
         exit(1)
     
@@ -57,6 +57,28 @@ import numpy as np
 
 # Package version - retrieved from the underlying SDK
 __version__ = LabelRecognizerModule.get_version()
+
+# License initialization results that still mean the SDK is usable.  A warning or
+# a cached license is expected on some machines (for example after the first
+# activation or when the license server cannot be reached).
+LICENSE_OK_CODES = (
+    EnumErrorCode.EC_OK,
+    EnumErrorCode.EC_LICENSE_WARNING,
+    EnumErrorCode.EC_LICENSE_CACHE_USED,
+)
+
+
+def isLicenseValid(error_code: int) -> bool:
+    """Return True when a ``LicenseManager.init_license()`` result is usable.
+
+    Args:
+        error_code (int): Error code returned by :func:`initLicense`.
+
+    Returns:
+        bool: True for success, license warnings and cached licenses.
+    """
+    return error_code in LICENSE_OK_CODES
+
     
 class FrameFetcher(ImageSourceAdapter):
     """
@@ -127,9 +149,12 @@ class MyCapturedResultReceiver(CapturedResultReceiver):
         if parsed_result is not None:
             parsed_items = parsed_result.get_items()
         
-        for i in range(len(items)):
-            mrz = MrzResult(parsed_items[i], items[i].get_location())
-            output.append(mrz)
+        # Parsed items and text-line items are normally aligned, but one of the
+        # arrays can be shorter when a line fails validation.  Zip instead of
+        # indexing so a partial result never raises IndexError.
+        for index, parsed_item in enumerate(parsed_items):
+            location = items[index].get_location() if index < len(items) else None
+            output.append(MrzResult(parsed_item, location))
         
         self.listener(output) 
 
@@ -171,14 +196,17 @@ class MrzResult:
             location (Quadrilateral): Quadrilateral defining the MRZ location
                                     in the source image.
         """
-        x1 = location.points[0].x
-        y1 = location.points[0].y
-        x2 = location.points[1].x
-        y2 = location.points[1].y
-        x3 = location.points[2].x
-        y3 = location.points[2].y
-        x4 = location.points[3].x
-        y4 = location.points[3].y
+        if location is not None:
+            x1 = location.points[0].x
+            y1 = location.points[0].y
+            x2 = location.points[1].x
+            y2 = location.points[1].y
+            x3 = location.points[2].x
+            y3 = location.points[2].y
+            x4 = location.points[3].x
+            y4 = location.points[3].y
+        else:
+            x1 = y1 = x2 = y2 = x3 = y3 = x4 = y4 = 0.0
 
         self.x1: float = x1
         self.y1: float = y1
@@ -189,7 +217,7 @@ class MrzResult:
         self.x4: float = x4
         self.y4: float = y4
 
-        self.doc_type = item.get_code_type()
+        self.doc_type = None
         self.raw_text = []
         self.doc_id = None
         self.surname = None
@@ -199,11 +227,15 @@ class MrzResult:
         self.gender = None
         self.date_of_birth = None
         self.date_of_expiry = None
-        if self.doc_type == "MRTD_TD3_PASSPORT":
-            if item.get_field_value("passportNumber") != None and item.get_field_validation_status("passportNumber") != EnumValidationStatus.VS_FAILED:
-                self.doc_id = item.get_field_value("passportNumber")
-            elif item.get_field_value("documentNumber") != None and item.get_field_validation_status("documentNumber") != EnumValidationStatus.VS_FAILED:
-                self.doc_id = item.get_field_value("documentNumber")
+
+        if item is None:
+            return
+
+        self.doc_type = item.get_code_type()
+        if item.get_field_value("passportNumber") != None and item.get_field_validation_status("passportNumber") != EnumValidationStatus.VS_FAILED:
+            self.doc_id = item.get_field_value("passportNumber")
+        elif item.get_field_value("documentNumber") != None and item.get_field_validation_status("documentNumber") != EnumValidationStatus.VS_FAILED:
+            self.doc_id = item.get_field_value("documentNumber")
 
         line = item.get_field_value("line1")
         if line is not None:
@@ -301,7 +333,7 @@ class MrzScanner:
     Example:
         # Initialize license first
         error_code, error_msg = initLicense("YOUR_LICENSE_KEY")
-        if error_code != 0:
+        if not isLicenseValid(error_code):
             print(f"License error: {error_msg}")
             return
             
@@ -369,6 +401,8 @@ class MrzScanner:
         self.receiver = MyCapturedResultReceiver(listener)
         self.cvr_instance.add_result_receiver(self.receiver)
         error_code, error_message = self.cvr_instance.start_capturing('ReadPassportAndId')
+        if error_code != EnumErrorCode.EC_OK:
+            print("Error:", error_code, error_message)
 
     def clearAsyncListener(self) -> None:
         """
@@ -452,9 +486,9 @@ class MrzScanner:
             if parsed_result is not None:
                 parsed_items = parsed_result.get_items()
                 
-            for i in range(len(items)):
-                mrz = MrzResult(parsed_items[i], items[i].get_location())
-                output.append(mrz)
+            for index, parsed_item in enumerate(parsed_items):
+                location = items[index].get_location() if index < len(items) else None
+                output.append(MrzResult(parsed_item, location))
         
         return output
     
@@ -684,7 +718,7 @@ def initLicense(licenseKey: str) -> Tuple[int, str]:
     
     Args:
         licenseKey (str): Your Dynamsoft license key. Options:
-            - Trial key: "DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ=="
+            - Trial key: "DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9"
             - Production key: Obtain from Dynamsoft customer portal
             - Offline key: For air-gapped environments (contact Dynamsoft)
     
@@ -704,14 +738,14 @@ def initLicense(licenseKey: str) -> Tuple[int, str]:
     Example:
         # Basic usage with error handling
         error_code, error_msg = initLicense("YOUR_LICENSE_KEY")
-        if error_code != 0:
+        if not isLicenseValid(error_code):
             print(f"License initialization failed: {error_msg} (Code: {error_code})")
             return
         
         print("License initialized successfully")
         
         # Trial license usage
-        trial_key = "DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ=="
+        trial_key = "DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9"
         error_code, _ = initLicense(trial_key)
         if error_code == 0:
             scanner = createInstance()
@@ -722,6 +756,8 @@ def initLicense(licenseKey: str) -> Tuple[int, str]:
         - License activation may cache credentials locally
         - Some license types have daily/monthly usage limits
         - Network connectivity may be required for license verification
+        - Use :func:`isLicenseValid` to check the result; warnings and cached
+          licenses are valid for normal operation
     """
     errorCode, errorMsg = LicenseManager.init_license(licenseKey)
     return errorCode, errorMsg
@@ -748,7 +784,7 @@ def createInstance() -> MrzScanner:
     Example:
         # Initialize license first
         error_code, error_msg = initLicense("YOUR_LICENSE_KEY")
-        if error_code != 0:
+        if not isLicenseValid(error_code):
             raise Exception(f"License error: {error_msg}")
         
         # Create scanner instance
@@ -809,18 +845,29 @@ def convertMat2ImageData(mat: np.ndarray) -> ImageData:
     Note:
         - 3-channel images are assumed to be in RGB order (not BGR)
         - For BGR images from cv2.imread(), convert to RGB first
-        - The function automatically calculates stride as width * channels
-        - Memory layout must be contiguous (standard numpy arrays)
+        - The function automatically determines stride and pixel format
+        - Non-contiguous arrays are copied so that the reported stride is valid
     """
-    if len(mat.shape) == 3:
-        height, width, channels = mat.shape
-        pixel_format = EnumImagePixelFormat.IPF_RGB_888
-    else:
-        height, width = mat.shape
-        channels = 1
-        pixel_format = EnumImagePixelFormat.IPF_GRAYSCALED
+    if not isinstance(mat, np.ndarray):
+        raise TypeError("mat must be a numpy.ndarray")
 
-    stride = width * channels
+    mat = np.ascontiguousarray(mat)
+    if mat.ndim == 3 and mat.shape[2] == 1:
+        mat = mat[:, :, 0]
+
+    if mat.ndim == 3 and mat.shape[2] == 3:
+        height, width = mat.shape[:2]
+        pixel_format = EnumImagePixelFormat.IPF_RGB_888
+    elif mat.ndim == 2:
+        height, width = mat.shape
+        pixel_format = EnumImagePixelFormat.IPF_GRAYSCALED
+    else:
+        raise ValueError(
+            "Unsupported image shape %r; expected (H, W), (H, W, 1) or (H, W, 3)"
+            % (mat.shape,)
+        )
+
+    stride = mat.strides[0]
     imagedata = ImageData(mat.tobytes(), width, height, stride, pixel_format)
     return imagedata
 

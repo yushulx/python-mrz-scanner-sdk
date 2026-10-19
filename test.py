@@ -1,3 +1,4 @@
+import os
 import cv2
 from time import sleep
 import mrzscanner
@@ -5,8 +6,14 @@ from mrzscanner import *
 
 # set license
 print('Version : ', mrzscanner.__version__)
-mrzscanner.initLicense(
-    "DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==")
+license_key = os.environ.get('DYNAMSOFT_LICENSE_KEY', '')
+if license_key == '':
+    license_key = "DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9"
+error_code, error_message = mrzscanner.initLicense(license_key)
+if not mrzscanner.isLicenseValid(error_code):
+    print("License initialization failed:", error_code, error_message)
+    print("Set DYNAMSOFT_LICENSE_KEY to a valid Dynamsoft license key.")
+    raise SystemExit(1)
 
 # initialize mrz scanner
 scanner = mrzscanner.createInstance()

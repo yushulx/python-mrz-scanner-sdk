@@ -11,11 +11,15 @@ if __name__ == '__main__':
     print("Welcome to Dynamsoft Capture Vision - MRZ Sample")
     print("**********************************************************")
 
-    error_code, error_message = LicenseManager.init_license(
-        "DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==")
-    if error_code != EnumErrorCode.EC_OK and error_code != EnumErrorCode.EC_LICENSE_CACHE_USED:
+    license_key = os.environ.get(
+        'DYNAMSOFT_LICENSE_KEY',
+        "DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9",
+    )
+    error_code, error_message = LicenseManager.init_license(license_key)
+    if error_code not in (EnumErrorCode.EC_OK, EnumErrorCode.EC_LICENSE_WARNING, EnumErrorCode.EC_LICENSE_CACHE_USED):
         print("License initialization failed: ErrorCode:",
               error_code, ", ErrorString:", error_message)
+        print("Pass a valid key with -l/--license or set DYNAMSOFT_LICENSE_KEY.")
     else:
         cvr_instance = CaptureVisionRouter()
         while (True):
@@ -49,6 +53,9 @@ if __name__ == '__main__':
                     print("No parsed results.")
                 else:
                     print_results(parsed_result)
+
+                if line_result is None:
+                    continue
 
                 items = line_result.get_items()
                 for item in items:

@@ -182,11 +182,10 @@ class DCPResultProcessor:
         self.is_passport = False
         # self.location = item.get_location()
 
-        if self.doc_type == "MRTD_TD3_PASSPORT":
-            if item.get_field_value("passportNumber") is not None and item.get_field_validation_status("passportNumber") != EnumValidationStatus.VS_FAILED:
-                self.doc_id = item.get_field_value("passportNumber")
-            elif item.get_field_value("documentNumber") is not None and item.get_field_validation_status("documentNumber") != EnumValidationStatus.VS_FAILED:
-                self.doc_id = item.get_field_value("documentNumber")
+        if item.get_field_value("passportNumber") is not None and item.get_field_validation_status("passportNumber") != EnumValidationStatus.VS_FAILED:
+            self.doc_id = item.get_field_value("passportNumber")
+        elif item.get_field_value("documentNumber") is not None and item.get_field_validation_status("documentNumber") != EnumValidationStatus.VS_FAILED:
+            self.doc_id = item.get_field_value("documentNumber")
             self.is_passport = True
 
         for i in range(1, 4):
@@ -549,10 +548,13 @@ class MRZScannerWindow(QMainWindow):
         """Initialize the Dynamsoft Capture Vision SDK."""
         # Initialize license
         error_code, error_message = LicenseManager.init_license(
-            "DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ=="
+            os.environ.get(
+                "DYNAMSOFT_LICENSE_KEY",
+                "DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9",
+            )
         )
         
-        if error_code != EnumErrorCode.EC_OK and error_code != EnumErrorCode.EC_LICENSE_WARNING:
+        if error_code not in (EnumErrorCode.EC_OK, EnumErrorCode.EC_LICENSE_WARNING, EnumErrorCode.EC_LICENSE_CACHE_USED):
             QMessageBox.warning(
                 None, 
                 "License Error",

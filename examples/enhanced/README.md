@@ -55,10 +55,13 @@ What the packages do:
 
 ## Usage
 
-1. Set your license key, or pass it on the command line:
+1. Set your license key, or pass it on the command line. The scripts fall back
+   to the public trial key when `DYNAMSOFT_LICENSE_KEY` is not set:
 
     ```python
-    LICENSE_KEY = "LICENSE-KEY"
+    LICENSE_KEY = os.environ.get(
+        "DYNAMSOFT_LICENSE_KEY", "DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9"
+    )
     ```
 
 2. Run the scripts:

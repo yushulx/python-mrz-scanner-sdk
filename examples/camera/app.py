@@ -28,11 +28,17 @@ try:
     license = args.license
     
     # set license
-    if  license == '':
-        mrzscanner.initLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==")
-    else:
-        mrzscanner.initLicense(license)
-        
+    if license == '':
+        license = os.environ.get('DYNAMSOFT_LICENSE_KEY', '')
+    if license == '':
+        license = "DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9"
+
+    error_code, error_message = mrzscanner.initLicense(license)
+    if not mrzscanner.isLicenseValid(error_code):
+        print("License initialization failed:", error_code, error_message)
+        print("Pass a valid key with -l/--license or set DYNAMSOFT_LICENSE_KEY.")
+        sys.exit(1)
+
     # initialize mrz scanner
     scanner = mrzscanner.createInstance()
 

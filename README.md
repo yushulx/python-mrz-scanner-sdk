@@ -40,10 +40,10 @@ A Python wrapper for **Machine Readable Zone (MRZ)** detection and parsing using
     ```bash
     pip install opencv-python
     ```
-- Dynamsoft Capture Vision Bundle SDK
+- Dynamsoft Capture Vision Bundle SDK (version 3.6.4000 or later)
   
     ```bash
-    pip install dynamsoft-capture-vision-bundle
+    pip install "dynamsoft-capture-vision-bundle>=3.6.4000"
     ```
 
 ### Build from Source
@@ -56,6 +56,10 @@ python setup.py sdist
 python setup.py bdist_wheel
 ```
 
+> The examples accept a license key with `-l/--license` or the
+> `DYNAMSOFT_LICENSE_KEY` environment variable. The built-in public trial key is
+> time-limited; request a free 30-day trial key if it has expired.
+
 ## 🏃‍♂️ Quick Start
 
 ### Basic Usage
@@ -65,7 +69,7 @@ import mrzscanner
 
 # 1. Initialize license (required)
 error_code, error_msg = mrzscanner.initLicense("YOUR_LICENSE_KEY")
-if error_code != 0:
+if not mrzscanner.isLicenseValid(error_code):
     print(f"License error: {error_msg}")
     exit(1)
 
@@ -185,6 +189,8 @@ Container for detected MRZ information and location.
 ```python
 # License management
 error_code, error_msg = mrzscanner.initLicense("LICENSE_KEY")
+if not mrzscanner.isLicenseValid(error_code):
+    print(f"License error: {error_msg}")
 
 # Scanner creation
 scanner = mrzscanner.createInstance()
@@ -193,6 +199,11 @@ scanner = mrzscanner.createInstance()
 image_data = mrzscanner.convertMat2ImageData(opencv_mat)
 image_data = mrzscanner.wrapImageData(width, height, stride, pixel_format, bytes)
 ```
+
+### `isLicenseValid(error_code: int) -> bool`
+
+Return `True` when a license initialization result means the SDK is usable.
+Success, license warnings and cached licenses are all accepted.
 
 
 

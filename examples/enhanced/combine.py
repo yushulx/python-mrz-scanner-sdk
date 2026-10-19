@@ -7,6 +7,7 @@ Usage:
 """
 
 import argparse
+import os
 import sys
 
 import cv2
@@ -16,7 +17,9 @@ from dynamsoft_capture_vision_bundle import *
 import face_retina
 from app import convertMat2ImageData, print_parsed_result
 
-LICENSE_KEY = "LICENSE-KEY"
+LICENSE_KEY = os.environ.get(
+    "DYNAMSOFT_LICENSE_KEY", "DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9"
+)
 
 
 def convertImageData2Mat(image_data):
@@ -94,8 +97,9 @@ def main():
     args = parser.parse_args()
 
     error_code, error_message = LicenseManager.init_license(args.license)
-    if error_code != EnumErrorCode.EC_OK and error_code != EnumErrorCode.EC_LICENSE_WARNING:
+    if error_code not in (EnumErrorCode.EC_OK, EnumErrorCode.EC_LICENSE_WARNING, EnumErrorCode.EC_LICENSE_CACHE_USED):
         print("License initialization failed:", error_code, error_message)
+        print("Pass a valid key with -l/--license or set DYNAMSOFT_LICENSE_KEY.")
         sys.exit(1)
 
     cvr = CaptureVisionRouter()
