@@ -40,10 +40,10 @@ A Python wrapper for **Machine Readable Zone (MRZ)** detection and parsing using
     ```bash
     pip install opencv-python
     ```
-- Dynamsoft Capture Vision Bundle SDK (version 3.6.4000 or later)
+- Dynamsoft Capture Vision Bundle SDK (version 3.6.5000 or later)
   
     ```bash
-    pip install "dynamsoft-capture-vision-bundle>=3.6.4000"
+    pip install "dynamsoft-capture-vision-bundle>=3.6.5000"
     ```
 
 ### Build from Source
