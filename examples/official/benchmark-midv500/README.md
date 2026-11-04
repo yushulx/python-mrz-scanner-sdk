@@ -27,13 +27,15 @@ The full run below uses the updated all-visible-MRZ curation policy (3,315 image
 
 | Metric | Original 3,600 labels | Curated 3,315-image benchmark |
 |---|---:|---:|
-| Exact MRZ matches | 1,603 (44.5%) | 1,602 (48.3%) |
-| Successful decodes | 2,139 (59.4%) | 2,128 (64.2%) |
-| Average match rate | 53.6% | 58.1% |
-| Average decode time | 386.9 ms | 365.2 ms |
-| P50 decode time | 283.1 ms | 258.9 ms |
-| P95 decode time | 899.6 ms | 919.3 ms |
-| P99 decode time | 1,271.0 ms | 1,283.7 ms |
+| Exact MRZ matches | 1,603 (44.5%) | 1,749 (52.8%) |
+| Successful decodes | 2,139 (59.4%) | 2,157 (65.1%) |
+| Average match rate | 53.6% | 60.6% |
+| Average decode time | 386.9 ms | 312.1 ms |
+| P50 decode time | 283.1 ms | 228.8 ms |
+| P95 decode time | 899.6 ms | 736.3 ms |
+| P99 decode time | 1,271.0 ms | 1,011.8 ms |
+
+The curated column was re-measured on Capture Vision 3.6.5000 (November 2026); the original 3,600-label column is from the earlier audit run.
 
 The curated benchmark denominator is smaller but more defensible: it measures MRZ recognition only on images where a complete MRZ is actually visible and scoreable.
 
@@ -45,12 +47,12 @@ The same curated benchmark was run against the two most popular open-source Pyth
 
 | Metric | Dynamsoft Capture Vision | PassportEye 2.2.2 | FastMRZ 2.1.2 |
 |---|---:|---:|---:|
-| Exact MRZ matches | **1,602 (48.33%)** | 9 (0.27%) | 242 (7.30%) |
-| Successful decodes | 2,128 (64.19%) | **2,688 (81.09%)** | 1,005 (30.32%) |
-| Average match rate | **58.09%** | 32.43% | 19.23% |
-| Average decode time | **365.2 ms** | 798.5 ms | 484.0 ms |
-| P50 decode time | **258.9 ms** | 748.3 ms | 479.6 ms |
-| P95 decode time | 919.3 ms | 1,449.5 ms | **639.9 ms** |
+| Exact MRZ matches | **1,749 (52.76%)** | 9 (0.27%) | 242 (7.30%) |
+| Successful decodes | 2,157 (65.07%) | **2,688 (81.09%)** | 1,005 (30.32%) |
+| Average match rate | **60.62%** | 32.43% | 19.23% |
+| Average decode time | **312.1 ms** | 798.5 ms | 484.0 ms |
+| P50 decode time | **228.8 ms** | 748.3 ms | 479.6 ms |
+| P95 decode time | 736.3 ms | 1,449.5 ms | **639.9 ms** |
 
 Both open-source libraries are Tesseract-OCR pipelines. MIDV-500 frames come from mobile-phone video clips (glare, motion blur, steep angles, cluttered desks), which is exactly the input Tesseract handles worst: PassportEye returns text for most images but misreads `<` as `K` on slanted OCR-B lines, while FastMRZ's strict line filter keeps it silent on 69.7% of frames. The comparison scripts measure both libraries through their raw MRZ text output so MIDV-500's synthetic specimen MRZ data cannot be rejected by their ICAO checksum validators.
 
