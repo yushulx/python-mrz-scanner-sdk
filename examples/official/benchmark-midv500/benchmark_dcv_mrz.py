@@ -834,12 +834,40 @@ def build_html(report: dict, summary: SummaryStats) -> str:
     success_rate = summary.success_count / summary.total_images if summary.total_images else 0.0
     exact_rate = summary.exact_count / summary.total_images if summary.total_images else 0.0
 
+    wrong_count = summary.success_count - summary.exact_count
+    no_read_count = summary.total_images - summary.success_count
+    wrong_rate = wrong_count / summary.total_images if summary.total_images else 0.0
+    no_read_rate = no_read_count / summary.total_images if summary.total_images else 0.0
+
+    # Ground-truth failure split: wrong reads vs no read.
     exact_card = f"""
       <article class="card">
         <div class="label">Exact Accuracy</div>
         <div class="value">{pct(exact_rate)}</div>
         <div class="note">{summary.exact_count:,} / {summary.total_images:,} exact MRZ matches</div>
+      </article>
+      <article class="card">
+        <div class="label">Wrong Reads</div>
+        <div class="value">{pct(wrong_rate)}</div>
+        <div class="note">{wrong_count:,} / {summary.total_images:,} returned text that did not match</div>
+      </article>
+      <article class="card">
+        <div class="label">No Read</div>
+        <div class="value">{pct(no_read_rate)}</div>
+        <div class="note">{no_read_count:,} / {summary.total_images:,} returned no MRZ text</div>
       </article>""" if has_ground_truth else ""
+
+    fallback_cards = "" if has_ground_truth else f"""
+      <article class="card">
+        <div class="label">SDK Success Rate</div>
+        <div class="value">{pct(success_rate)}</div>
+        <div class="note">{summary.success_count:,} / {summary.total_images:,} successful decodes</div>
+      </article>
+      <article class="card">
+        <div class="label">Average Match Rate</div>
+        <div class="value">{pct(summary.avg_match_rate)}</div>
+        <div class="note">Character-level match against ground truth</div>
+      </article>"""
 
     return f"""<!doctype html>
 <html lang="en">
@@ -984,16 +1012,7 @@ def build_html(report: dict, summary: SummaryStats) -> str:
 
     <section class="grid">
       {exact_card}
-      <article class="card">
-        <div class="label">SDK Success Rate</div>
-        <div class="value">{pct(success_rate)}</div>
-        <div class="note">{summary.success_count:,} / {summary.total_images:,} successful decodes</div>
-      </article>
-      <article class="card">
-        <div class="label">Average Match Rate</div>
-        <div class="value">{pct(summary.avg_match_rate)}</div>
-        <div class="note">Character-level match against ground truth</div>
-      </article>
+      {fallback_cards}
       <article class="card">
         <div class="label">Average Time Cost</div>
         <div class="value">{ms(summary.avg_ms)}</div>
